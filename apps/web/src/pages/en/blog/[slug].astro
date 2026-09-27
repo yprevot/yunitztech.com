@@ -1,0 +1,14 @@
+---
+import Article from "../../../components/Article.astro";
+import { api } from "../../../lib/api";
+let post: any;
+let unavailable = false;
+try {
+  post = await api(`post/en/${encodeURIComponent(Astro.params.slug!)}`);
+} catch (e) {
+  unavailable = !(e instanceof Error && e.message === "API 404");
+  Astro.response.status = unavailable ? 503 : 404;
+}
+---
+
+<Article lang="en" post={post} unavailable={unavailable} />

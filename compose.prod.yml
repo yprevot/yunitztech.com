@@ -1,0 +1,102 @@
+# Coolify Docker Compose application. Attach the HTTPS domain ONLY to gateway:8080.
+# No host ports. All images are published by GitHub Actions to GHCR.
+name: yunitztech
+services:
+  gateway:
+    environment:
+      TRUSTED_PROXY_CIDR: ${TRUSTED_PROXY_CIDR:?Set the exact Coolify proxy IP or dedicated proxy subnet}
+    image: ${IMAGE_PREFIX:?Set lowercase ghcr.io/owner/repo}-gateway:${IMAGE_TAG:-main}
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    depends_on:
+      api: { condition: service_healthy }
+      web: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, "http://127.0.0.1:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks: [frontend]
+  web:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}-web:${IMAGE_TAG:-main}
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    environment:
+      API_URL: http://api:3000
+      SITE_URL: ${SITE_URL:?Set canonical HTTPS origin}
+      LEGAL_NAME: ${LEGAL_NAME:?Set legal entity}
+      LEGAL_COUNTRY: ${LEGAL_COUNTRY:?Set jurisdiction}
+      LEGAL_ADDRESS: ${LEGAL_ADDRESS:?Set address}
+      PRIVACY_EMAIL: ${PRIVACY_EMAIL:?Set privacy email}
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://localhost:4321/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      api: { condition: service_healthy }
+    networks: [frontend]
+  api:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}-api:${IMAGE_TAG:-main}
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    environment:
+      SITE_URL: ${SITE_URL:?Set SITE_URL}
+      DATABASE_URL: postgresql://yunitz:${POSTGRES_PASSWORD:?Set URL-safe database password}@db:5432/yunitz
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set admin email}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set initial password of at least 16 characters}
+      UPLOAD_DIR: /app/uploads
+    volumes: [uploads:/app/uploads]
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [backend, frontend]
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    environment:
+      POSTGRES_DB: yunitz
+      POSTGRES_USER: yunitz
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U yunitz -d yunitz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+volumes:
+  pgdata:
+  uploads:
+networks:
+  backend:
+    internal: true
+  frontend:

@@ -1,0 +1,113 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { siteUrl } from "../lib/api";
+const { lang = "es", post, unavailable = false } = Astro.props;
+const en = lang === "en";
+const translation = post?.translations.find((t: any) => t.locale !== lang);
+const alternate = translation
+  ? `${translation.locale === "en" ? "/en" : ""}/blog/${translation.slug}`
+  : en
+    ? "/blog"
+    : "/en/blog";
+const blocks = post?.body.split(/\n\s*\n/) || [];
+---
+
+<Layout
+  lang={lang}
+  title={
+    post
+      ? post.title + " | YunitzTech"
+      : en
+        ? "Article unavailable"
+        : "Artículo no disponible"
+  }
+  description={post?.excerpt || ""}
+  alternate={alternate}
+  image={post?.image}
+  article={true}
+  noindex={!post}
+>
+  {post && (
+    <script
+      slot="head"
+      type="application/ld+json"
+      set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        headline: post.title,
+        description: post.excerpt,
+        image: new URL(post.image, siteUrl).href,
+        datePublished: post.created_at,
+        dateModified: post.updated_at,
+        inLanguage: lang,
+        author: { "@type": "Organization", name: "YunitzTech" },
+        publisher: { "@type": "Organization", name: "YunitzTech" },
+        mainEntityOfPage: new URL(Astro.url.pathname, siteUrl).href,
+      }).replace(/</g, "\\u003c")}
+    />
+  )}
+  <div class="container">
+    <article class="prose">
+      <a class="back-link" href={(en ? "/en" : "") + "/blog"}>
+        ← {en ? "Back to the blog" : "Volver al blog"}
+      </a>
+      {post ? (
+        <>
+          <h1>{post.title}</h1>
+          <p class="lead">{post.excerpt}</p>
+          <div class="article-meta">
+            YunitzTech ·{" "}
+            <time datetime={post.updated_at}>
+              {new Date(post.updated_at).toLocaleDateString(
+                en ? "en-US" : "es-MX",
+                { year: "numeric", month: "long", day: "numeric" },
+              )}
+            </time>
+          </div>
+          <img
+            src={post.image}
+            alt={post.image_alt}
+            width="1200"
+            height="800"
+          />
+          {blocks.map((b: string, i: number) =>
+            b.startsWith("## ") ? (
+              <h2>{b.slice(3)}</h2>
+            ) : b.length < 95 && i > 0 && !b.includes(".") ? (
+              <h2>{b}</h2>
+            ) : (
+              <p>{b}</p>
+            ),
+          )}
+          <hr />
+          <h2>
+            {en
+              ? "Ready to explore your idea?"
+              : "¿Listo para explorar tu idea?"}
+          </h2>
+          <a href={(en ? "/en/" : "/") + "#contacto"}>
+            {en ? "Tell us about your business" : "Cuéntanos sobre tu negocio"}{" "}
+            ↗
+          </a>
+        </>
+      ) : (
+        <>
+          <h1>
+            {en
+              ? unavailable
+                ? "We’ll be back shortly"
+                : "Article not found"
+              : unavailable
+                ? "Volvemos en un momento"
+                : "Artículo no encontrado"}
+          </h1>
+          <p>
+            {en
+              ? "Browse our blog for more ideas."
+              : "Visita nuestro blog para descubrir más ideas."}
+          </p>
+        </>
+      )}
+    </article>
+  </div>
+</Layout>

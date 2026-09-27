@@ -1,0 +1,284 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Administración | YunitzTech" noindex={true} alternate="/en/">
+  <div class="admin-shell">
+    <p
+      id="admin-status"
+      class="admin-status"
+      role="status"
+      aria-live="polite"
+    ></p>
+    <section id="login-panel" class="admin-login">
+      <h1>Tu espacio de trabajo</h1>
+      <p>Administra tu sitio y las nuevas conversaciones.</p>
+      <form id="login">
+        <label>
+          Correo de administración
+          <input name="email" type="email" autocomplete="username" required />
+        </label>
+        <label>
+          Contraseña
+          <input
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </label>
+        <button class="button">Iniciar sesión</button>
+      </form>
+    </section>
+    <section id="dashboard" hidden>
+      <div class="admin-top">
+        <div>
+          <p class="eyebrow">YunitzTech / Administración</p>
+          <h1>Una vista de tu negocio digital.</h1>
+        </div>
+        <button id="logout" class="secondary">
+          Cerrar sesión
+        </button>
+      </div>
+      <div class="admin-tabs" aria-label="Secciones del panel">
+        <button data-tab="overview" aria-pressed="true">
+          Resumen
+        </button>
+        <button data-tab="contacts" aria-pressed="false">
+          Contactos
+        </button>
+        <button data-tab="posts" aria-pressed="false">
+          Artículos
+        </button>
+        <button data-tab="site" aria-pressed="false">
+          Sitio e imágenes
+        </button>
+      </div>
+      <section data-panel="overview">
+        <h2>Últimos 30 días</h2>
+        <div class="metrics" id="metrics"></div>
+        <p>
+          Vistas agregadas, no visitantes únicos. Sin cookies de rastreo ni
+          geolocalización; las procedencias son dominios de referencia. Pueden
+          incluir bots.
+        </p>
+        <div class="admin-grid">
+          <div class="admin-panel">
+            <h3>Procedencia</h3>
+            <div id="sources"></div>
+          </div>
+          <div class="admin-panel">
+            <h3>Páginas visitadas</h3>
+            <div id="pages"></div>
+          </div>
+        </div>
+        <div class="admin-panel">
+          <h3>Vistas por día</h3>
+          <div id="daily"></div>
+        </div>
+      </section>
+      <section data-panel="contacts" hidden>
+        <div class="section-heading">
+          <h2>Solicitudes de contacto</h2>
+          <label>
+            Filtrar por estado
+            <select id="contact-filter">
+              <option value="all">Todos</option>
+              <option value="new">Nuevos</option>
+              <option value="in-progress">En seguimiento</option>
+              <option value="closed">Cerrados</option>
+            </select>
+          </label>
+        </div>
+        <p>
+          Se muestran las 500 solicitudes más recientes. Se eliminan
+          automáticamente después de 12 meses.
+        </p>
+        <div id="contact-list"></div>
+      </section>
+      <section data-panel="posts" hidden>
+        <div class="admin-grid">
+          <div>
+            <h2>Artículos</h2>
+            <button class="button" id="new-post">
+              Nuevo artículo
+            </button>
+            <div
+              class="admin-list"
+              id="post-list"
+              style="margin-top:20px"
+            ></div>
+          </div>
+          <form id="post-form" class="admin-panel">
+            <h2 id="post-heading">Nuevo artículo</h2>
+            <input type="hidden" name="id" />
+            <div class="form-row">
+              <label>
+                Idioma
+                <select name="locale">
+                  <option value="es">Español</option>
+                  <option value="en">English</option>
+                </select>
+              </label>
+              <label>
+                Clave compartida de traducción
+                <input
+                  name="translation_key"
+                  required
+                  pattern="[a-z0-9-]+"
+                  maxlength="100"
+                />
+              </label>
+            </div>
+            <p>
+              Usa la misma clave para enlazar las versiones en español e inglés.
+            </p>
+            <label>
+              Slug de URL
+              <input
+                name="slug"
+                pattern="[a-z0-9-]+"
+                maxlength="150"
+                required
+              />
+            </label>
+            <label>
+              Título
+              <input name="title" minlength="5" maxlength="180" required />
+            </label>
+            <label>
+              Descripción para buscadores
+              <textarea
+                name="excerpt"
+                minlength="20"
+                maxlength="320"
+                required
+              ></textarea>
+            </label>
+            <label>
+              Contenido
+              <textarea
+                name="body"
+                rows="15"
+                minlength="80"
+                maxlength="60000"
+                required
+              ></textarea>
+            </label>
+            <p>
+              Párrafos separados por una línea en blanco. Usa «## » al inicio
+              para un subtítulo. El contenido se muestra como texto seguro, sin
+              HTML.
+            </p>
+            <label>
+              Imagen
+              <input name="image" value="/images/mvp-studio.webp" required />
+            </label>
+            <label>
+              Descripción accesible de la imagen
+              <input name="image_alt" maxlength="200" />
+            </label>
+            <label>
+              Subir imagen para este artículo
+              <input
+                type="file"
+                id="post-upload"
+                accept="image/jpeg,image/png,image/webp,image/avif"
+              />
+            </label>
+            <img
+              id="post-preview"
+              src="/images/mvp-studio.webp"
+              width="300"
+              height="200"
+              alt="Vista previa"
+            />
+            <label class="checkbox" style="margin-top:20px">
+              <input name="published" type="checkbox" />
+              <span>Publicado y visible en el blog</span>
+            </label>
+            <button class="button">Guardar artículo</button>
+            <a
+              id="post-public-link"
+              class="text-link"
+              target="_blank"
+              rel="noopener"
+              hidden
+            >
+              Ver artículo ↗
+            </a>
+          </form>
+        </div>
+      </section>
+      <section data-panel="site" hidden>
+        <div class="admin-grid">
+          <form id="site-form" class="admin-panel">
+            <h2>Portada y servicios</h2>
+            <label>
+              Idioma
+              <select name="locale" id="site-locale">
+                <option value="es">Español</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+            <label>
+              Titular principal
+              <textarea
+                name="headline"
+                minlength="10"
+                maxlength="180"
+                required
+              ></textarea>
+            </label>
+            <label>
+              Descripción
+              <textarea
+                name="description"
+                minlength="20"
+                maxlength="400"
+                required
+              ></textarea>
+            </label>
+            <label>
+              Imagen principal
+              <input name="image" required />
+            </label>
+            <label>
+              Subir imagen principal
+              <input
+                type="file"
+                id="site-upload"
+                accept="image/jpeg,image/png,image/webp,image/avif"
+              />
+            </label>
+            <img
+              id="site-preview"
+              width="300"
+              height="200"
+              alt="Vista previa de portada"
+            />
+            <h3 style="margin-top:25px">Servicios</h3>
+            <div id="service-fields"></div>
+            <button class="button">Guardar portada</button>
+          </form>
+          <aside>
+            <h2>Publica sin tocar el código.</h2>
+            <p>
+              Los cambios guardados aparecen al recargar el sitio. Cada idioma
+              se edita por separado. Las imágenes se convierten a WebP, se
+              redimensionan hasta 1600 píxeles y se eliminan sus metadatos.
+            </p>
+            <p>
+              Formatos: JPG, PNG, WebP y AVIF. Máximo 5 MB y 20 megapíxeles. Usa
+              una descripción accesible para imágenes informativas.
+            </p>
+            <a class="text-link" href="/" target="_blank" rel="noopener">
+              Abrir el sitio ↗
+            </a>
+          </aside>
+        </div>
+      </section>
+    </section>
+  </div>
+  <script src="../lib/admin.ts"></script>
+</Layout>

@@ -1,0 +1,75 @@
+name: yunitztech-dev
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: yunitz
+      POSTGRES_USER: yunitz
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U yunitz -d yunitz"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [backend]
+  api:
+    build: { context: ., target: dependencies }
+    working_dir: /app/apps/api
+    command: sh -c 'npm run build && npm run start'
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://yunitz:${POSTGRES_PASSWORD}@db:5432/yunitz
+      SITE_URL: http://localhost:8080
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}
+      UPLOAD_DIR: /app/uploads
+    volumes: ["./apps/api:/app/apps/api", "uploads:/app/uploads"]
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [backend, frontend]
+  web:
+    build: { context: ., target: dependencies }
+    working_dir: /app/apps/web
+    command: npm run dev
+    environment:
+      API_URL: http://api:3000
+      SITE_URL: http://localhost:8080
+      LEGAL_NAME: ${LEGAL_NAME:-}
+      LEGAL_COUNTRY: ${LEGAL_COUNTRY:-}
+      LEGAL_ADDRESS: ${LEGAL_ADDRESS:-}
+      PRIVACY_EMAIL: ${PRIVACY_EMAIL:-}
+    volumes: ["./apps/web:/app/apps/web"]
+    depends_on:
+      api: { condition: service_healthy }
+    networks: [frontend]
+  nginx:
+    build: { context: ., target: gateway }
+    ports: ["127.0.0.1:8080:8080"]
+    volumes:
+      [
+        "./infra/nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro",
+        "./infra/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro",
+      ]
+    environment:
+      TRUSTED_PROXY_CIDR: 127.0.0.1/32
+    depends_on: [web, api]
+    networks: [frontend]
+volumes:
+  pgdata:
+  uploads:
+networks:
+  backend:
+    internal: true
+  frontend:

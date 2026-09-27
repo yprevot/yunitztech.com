@@ -1,0 +1,14 @@
+---
+import Blog from "../../../components/Blog.astro";
+import { api } from "../../../lib/api";
+let posts: any[] = [];
+let failed = false;
+try {
+  posts = await api("posts/en");
+} catch {
+  failed = true;
+  Astro.response.status = 503;
+}
+---
+
+<Blog lang="en" posts={posts} failed={failed} />

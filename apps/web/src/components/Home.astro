@@ -1,0 +1,478 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { siteUrl } from "../lib/api";
+const { lang = "es", content, posts = [] } = Astro.props;
+const en = lang === "en";
+const prefix = en ? "/en" : "";
+const steps = en
+  ? [
+      [
+        "Understand your idea",
+        "We talk about your customers, your business and the problem worth solving.",
+      ],
+      [
+        "Build the essentials",
+        "We define a focused first version and turn it into a product you can use.",
+      ],
+      [
+        "Launch, learn, improve",
+        "We release it, listen to real customers and decide what comes next.",
+      ],
+    ]
+  : [
+      [
+        "Entendemos tu idea",
+        "Conversamos sobre tus clientes, tu negocio y el problema que vale la pena resolver.",
+      ],
+      [
+        "Creamos lo esencial",
+        "Definimos una primera versión enfocada y la convertimos en un producto que puedes usar.",
+      ],
+      [
+        "Lanzamos, aprendemos, mejoramos",
+        "Lo ponemos en marcha, escuchamos a clientes reales y decidimos qué sigue.",
+      ],
+    ];
+---
+
+<Layout
+  lang={lang}
+  title={
+    en
+      ? "MVP development for small businesses | YunitzTech"
+      : "Desarrollo de MVP para mipymes | YunitzTech"
+  }
+  description={
+    en
+      ? "Turn your business idea into a useful digital product. Landing pages, online stores, booking systems and apps for small businesses."
+      : "Convierte tu idea de negocio en un producto digital útil. Landing pages, tiendas en línea, reservaciones y aplicaciones para mipymes."
+  }
+  alternate={en ? "/" : "/en/"}
+>
+  <script
+    slot="head"
+    type="application/ld+json"
+    set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "YunitzTech",
+      url: siteUrl,
+      description: en
+        ? "Digital products and MVPs for small businesses"
+        : "Productos digitales y MVP para mipymes",
+    }).replace(/</g, "\\u003c")}
+  />
+  {!content ? (
+    <section class="container section">
+      <h1>{en ? "We’ll be back shortly" : "Volvemos en un momento"}</h1>
+      <p>
+        {en
+          ? "Please try again shortly."
+          : "Intenta nuevamente en unos minutos."}
+      </p>
+    </section>
+  ) : (
+    <>
+      <section class="hero container">
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span class="status-dot"></span>
+            {en
+              ? "A digital partner for your business"
+              : "Un aliado digital para tu negocio"}
+          </p>
+          <h1>{content.headline}</h1>
+          <p class="lead">{content.description}</p>
+          <div class="hero-actions">
+            <a class="button" href="#contacto">
+              {en ? "Tell us about your idea" : "Cuéntanos tu idea"}{" "}
+              <span aria-hidden="true">↗</span>
+            </a>
+            <a class="text-link" href="#servicios">
+              {en ? "Explore our services" : "Explora los servicios"}{" "}
+              <span aria-hidden="true">↓</span>
+            </a>
+          </div>
+          <p class="hero-note">
+            {en
+              ? "A clear scope. A useful product. Room to grow."
+              : "Un alcance claro. Un producto útil. Espacio para crecer."}
+          </p>
+        </div>
+        <div class="hero-art">
+          <div class="art-caption">
+            <span class="tiny-icon" aria-hidden="true">
+              ✦
+            </span>
+            {en
+              ? "From “what if” to “it’s live”"
+              : "Del “¿y si…?” al “ya está en marcha”"}
+          </div>
+          <img
+            src={content.image}
+            width="1536"
+            height="1024"
+            alt={
+              en
+                ? "A miniature shop connected to mobile and web products"
+                : "Una pequeña tienda conectada a productos web y móviles"
+            }
+            fetchpriority="high"
+          />
+          <div class="art-note">
+            <span class="check" aria-hidden="true">
+              ✓
+            </span>
+            <div>
+              <strong>
+                {en ? "Your idea, taking shape" : "Tu idea, tomando forma"}
+              </strong>
+              <span>
+                {en
+                  ? "Built around what matters"
+                  : "Construida alrededor de lo importante"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <div class="focus-strip">
+        <div class="container">
+          <span>
+            {en
+              ? "Made for businesses like yours"
+              : "Hecho para negocios como el tuyo"}
+          </span>
+          <div>
+            {en ? "Local shops" : "Comercios"}
+            <i>✳</i>
+            {en ? "Independent professionals" : "Profesionales"}
+            <i>✳</i>
+            {en ? "Service businesses" : "Servicios"}
+            <i>✳</i>
+            {en ? "New ventures" : "Emprendimientos"}
+          </div>
+        </div>
+      </div>
+      <section class="container section services" id="servicios">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">
+              {en
+                ? "What we can build together"
+                : "Lo que podemos crear juntos"}
+            </p>
+            <h2>
+              {en
+                ? "Big plans.\nThe right first step."
+                : "Grandes planes.\nEl primer paso correcto."}
+            </h2>
+          </div>
+          <p>
+            {en
+              ? "You don’t need every feature on day one. You need the right tools to start, learn and grow."
+              : "No necesitas todas las funciones desde el primer día. Necesitas las herramientas correctas para empezar, aprender y crecer."}
+          </p>
+        </div>
+        <div class="service-grid">
+          {content.services.map((s: any, i: number) => (
+            <article class="service-card">
+              <span class="service-icon" aria-hidden="true">
+                {["↗", "▦", "◷", "▣", "✉", "⌘"][i % 6]}
+              </span>
+              <h3>{s.title}</h3>
+              <p>{s.description}</p>
+              <a
+                href="#contacto"
+                aria-label={(en ? "Talk about " : "Conversar sobre ") + s.title}
+              >
+                {en ? "Let’s explore it" : "Exploremos tu idea"}{" "}
+                <span aria-hidden="true">↗</span>
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section class="mvp-section">
+        <div class="container mvp-layout">
+          <div class="mvp-diagram" aria-hidden="true">
+            <span class="idea-label">{en ? "Your idea" : "Tu idea"}</span>
+            <div class="orbit">
+              <span>✦</span>
+              <div class="core">
+                MVP
+                <small>
+                  {en ? "A useful first version" : "Una primera versión útil"}
+                </small>
+              </div>
+            </div>
+            <span class="learn-label">
+              {en ? "Build → learn → grow" : "Crear → aprender → crecer"}
+            </span>
+          </div>
+          <div>
+            <p class="eyebrow">
+              {en
+                ? "Start small. Think ahead."
+                : "Empieza pequeño. Piensa a futuro."}
+            </p>
+            <h2>
+              {en
+                ? "Less guesswork.\nMore real learning."
+                : "Menos suposiciones.\nMás aprendizaje real."}
+            </h2>
+            <p class="lead">
+              {en
+                ? "An MVP is the simplest version of your product that solves a real problem. We help you focus your investment where it matters first."
+                : "Un MVP es la versión más sencilla de tu producto que resuelve un problema real. Te ayudamos a enfocar tu inversión en lo que importa primero."}
+            </p>
+            <ul class="check-list">
+              <li>
+                {en
+                  ? "Validate your idea with real customers"
+                  : "Valida tu idea con clientes reales"}
+              </li>
+              <li>
+                {en
+                  ? "Keep the first release focused"
+                  : "Mantén enfocada tu primera versión"}
+              </li>
+              <li>
+                {en
+                  ? "Grow from what you learn"
+                  : "Crece a partir de lo que aprendes"}
+              </li>
+            </ul>
+            <a
+              class="text-link"
+              href={
+                prefix +
+                "/blog/" +
+                (en ? "why-your-business-needs-an-mvp" : "empezar-con-un-mvp")
+              }
+            >
+              {en ? "Learn more about MVPs" : "Conoce más sobre los MVP"} ↗
+            </a>
+          </div>
+        </div>
+      </section>
+      <section class="container section" id="proceso">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">
+              {en ? "A shared journey" : "Un camino compartido"}
+            </p>
+            <h2>
+              {en
+                ? "From the first conversation\nto your first launch."
+                : "De la primera conversación\nal primer lanzamiento."}
+            </h2>
+          </div>
+          <p>
+            {en
+              ? "Clear communication and decisions we make together. You know what we’re building and why."
+              : "Comunicación clara y decisiones que tomamos juntos. Sabes qué estamos construyendo y por qué."}
+          </p>
+        </div>
+        <div class="steps">
+          {steps.map(([title, desc], i) => (
+            <article>
+              <span class="step-number">0{i + 1}</span>
+              <h3>{title}</h3>
+              <p>{desc}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section class="blog-section">
+        <div class="container section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">
+                {en
+                  ? "Ideas to move forward"
+                  : "Ideas para dar el siguiente paso"}
+              </p>
+              <h2>
+                {en
+                  ? "A little clarity\nfor your big idea."
+                  : "Un poco de claridad\npara tu gran idea."}
+              </h2>
+            </div>
+            <a class="text-link" href={prefix + "/blog"}>
+              {en ? "All articles" : "Todos los artículos"} ↗
+            </a>
+          </div>
+          <div class="post-grid">
+            {posts.slice(0, 3).map((p: any, i: number) => (
+              <a
+                class={"post-card tone-" + i}
+                href={prefix + "/blog/" + p.slug}
+              >
+                <div class="post-image">
+                  <img
+                    src={p.image}
+                    width="600"
+                    height="400"
+                    alt={p.image_alt}
+                    loading="lazy"
+                  />
+                  <span>
+                    {en ? "Starting a business" : "Emprender con tecnología"}
+                  </span>
+                </div>
+                <div class="post-copy">
+                  <h3>{p.title}</h3>
+                  <p>{p.excerpt}</p>
+                  <span class="text-link">
+                    {en ? "Read article" : "Leer artículo"} ↗
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section class="container section contact-layout" id="contacto">
+        <div>
+          <p class="eyebrow">
+            {en
+              ? "Your next step starts here"
+              : "Tu siguiente paso empieza aquí"}
+          </p>
+          <h2>
+            {en
+              ? "You bring the idea.\nLet’s build what’s next."
+              : "Tú pones la idea.\nConstruyamos lo que sigue."}
+          </h2>
+          <p class="lead">
+            {en
+              ? "Tell us what you have in mind, even if it’s still on a napkin. We’ll explore a practical first version together."
+              : "Cuéntanos lo que tienes en mente, aunque todavía esté en una servilleta. Juntos exploraremos una primera versión posible."}
+          </p>
+          <div class="contact-note">
+            <span aria-hidden="true">↗</span>
+            <p>
+              {en
+                ? "No need for a technical brief. Start with your business and the problem you want to solve."
+                : "No necesitas un documento técnico. Empieza por tu negocio y el problema que quieres resolver."}
+            </p>
+          </div>
+        </div>
+        <form id="contact-form" class="contact-form" data-lang={lang}>
+          <div class="form-row">
+            <label>
+              {en ? "Your name" : "Tu nombre"}
+              <input
+                name="name"
+                autocomplete="name"
+                required
+                minlength="2"
+                maxlength="100"
+              />
+            </label>
+            <label>
+              {en ? "Your email" : "Tu correo"}
+              <input
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
+                maxlength="254"
+              />
+            </label>
+          </div>
+          <label>
+            {en ? "Business name (optional)" : "Nombre del negocio (opcional)"}
+            <input name="company" autocomplete="organization" maxlength="150" />
+          </label>
+          <label>
+            {en ? "What do you have in mind?" : "¿Qué tienes en mente?"}
+            <select name="service" required>
+              <option value="">
+                {en ? "Choose a service" : "Elige un servicio"}
+              </option>
+              {content.services.map((s: any) => (
+                <option>{s.title}</option>
+              ))}
+              <option>
+                {en ? "Help defining my MVP" : "Ayuda para definir mi MVP"}
+              </option>
+            </select>
+          </label>
+          <label>
+            {en ? "Tell us about your idea" : "Cuéntanos tu idea"}
+            <textarea
+              name="message"
+              rows="4"
+              required
+              minlength="20"
+              maxlength="5000"
+              placeholder={
+                en
+                  ? "What would you like to solve for your customers?"
+                  : "¿Qué te gustaría resolver para tus clientes?"
+              }
+            ></textarea>
+          </label>
+          <div class="honey" aria-hidden="true">
+            <label>
+              Website
+              <input name="website" tabindex="-1" autocomplete="off" />
+            </label>
+          </div>
+          <label class="checkbox">
+            <input type="checkbox" name="consent" required />
+            <span>
+              {en ? "I have read the" : "He leído la"}{" "}
+              <a href={en ? "/en/privacy-policy" : "/politica-de-privacidad"}>
+                {en ? "privacy policy" : "política de privacidad"}
+              </a>{" "}
+              {en
+                ? "and agree to be contacted about my request."
+                : "y acepto que me contacten sobre mi solicitud."}
+            </span>
+          </label>
+          <button class="button" type="submit">
+            {en ? "Send my idea" : "Enviar mi idea"} ↗
+          </button>
+          <p id="form-status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </>
+  )}
+  <script>
+    const form = document.querySelector<HTMLFormElement>("#contact-form");
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const button = form.querySelector("button")!;
+      const status = document.querySelector("#form-status")!;
+      const en = form.dataset.lang === "en";
+      button.disabled = true;
+      status.textContent = en ? "Sending…" : "Enviando…";
+      const values = Object.fromEntries(new FormData(form));
+      try {
+        const r = await fetch("/api/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...values,
+            consent: values.consent === "on",
+            locale: form.dataset.lang,
+          }),
+        });
+        if (!r.ok) throw new Error();
+        form.reset();
+        status.textContent = en
+          ? "Your idea is in our inbox. Thank you for telling us about it."
+          : "Tu idea ya está en nuestra bandeja. Gracias por compartirla.";
+      } catch {
+        status.textContent = en
+          ? "We couldn’t send your request. Check the fields and try again shortly."
+          : "No pudimos enviar tu solicitud. Revisa los campos e intenta nuevamente en unos minutos.";
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</Layout>

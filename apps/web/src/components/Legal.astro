@@ -1,0 +1,195 @@
+---
+import Layout from "../layouts/Layout.astro";
+const { lang = "es", type = "privacy" } = Astro.props;
+const en = lang === "en";
+const privacy = type === "privacy";
+const title = privacy
+  ? en
+    ? "Privacy policy"
+    : "Política de privacidad"
+  : en
+    ? "Terms of service"
+    : "Condiciones de servicio";
+const owner = process.env.LEGAL_NAME;
+const country = process.env.LEGAL_COUNTRY;
+const email = process.env.PRIVACY_EMAIL;
+const address = process.env.LEGAL_ADDRESS;
+const complete = owner && country && email && address;
+const alternate = privacy
+  ? en
+    ? "/politica-de-privacidad"
+    : "/en/privacy-policy"
+  : en
+    ? "/condiciones-de-servicio"
+    : "/en/terms-of-service";
+---
+
+<Layout
+  lang={lang}
+  title={title + " | YunitzTech"}
+  description={
+    en
+      ? "How YunitzTech handles requests, personal information and use of this website."
+      : "Cómo YunitzTech trata las solicitudes, los datos personales y el uso de este sitio."
+  }
+  alternate={alternate}
+  noindex={!complete}
+>
+  <div class="container">
+    <article class="prose">
+      <h1>{title}</h1>
+      <p>
+        {en
+          ? "Last updated: September 26, 2026."
+          : "Última actualización: 26 de septiembre de 2026."}
+      </p>
+      {!complete && (
+        <p class="notice">
+          {en
+            ? "Draft pending owner details and jurisdiction review before public launch. The responsible legal entity, address, country and privacy email must be completed."
+            : "Borrador pendiente de datos del titular y revisión de jurisdicción antes del lanzamiento público. Falta completar la razón social responsable, domicilio, país y correo de privacidad."}
+        </p>
+      )}
+      {privacy ? (
+        <>
+          <h2>{en ? "Who is responsible" : "Quién es responsable"}</h2>
+          <p>
+            {en
+              ? "This website operates under the YunitzTech brand. The party responsible for handling personal information is:"
+              : "Este sitio opera bajo la marca YunitzTech. El responsable del tratamiento de datos personales es:"}{" "}
+            {owner ||
+              (en ? "[Legal name pending]" : "[Razón social pendiente]")}
+            . {en ? "Address:" : "Domicilio:"}{" "}
+            {address || (en ? "[Pending]" : "[Pendiente]")}. {country || ""}.
+          </p>
+          <h2>{en ? "Information we collect" : "Información que recabamos"}</h2>
+          <p>
+            {en
+              ? "When you send the contact form, we receive your name, email address, optional business name, selected service, message, language, submission time and the version of the consent notice. Please do not include sensitive information or passwords."
+              : "Al enviar el formulario recibimos tu nombre, correo electrónico, nombre opcional del negocio, servicio seleccionado, mensaje, idioma, fecha de envío y versión del aviso aceptado. No incluyas datos sensibles ni contraseñas."}
+          </p>
+          <h2>{en ? "Why we use it" : "Para qué la utilizamos"}</h2>
+          <p>
+            {en
+              ? "We use this information to review and respond to your request, discuss a potential project and manage follow-up. Sending this form does not subscribe you to a mailing list. Any marketing subscription requires a separate, voluntary choice."
+              : "Utilizamos esta información para revisar y responder tu solicitud, conversar sobre un posible proyecto y gestionar su seguimiento. Enviar el formulario no te suscribe a una lista de correos. Cualquier suscripción comercial requiere una elección voluntaria por separado."}
+          </p>
+          <h2>
+            {en
+              ? "Site statistics and cookies"
+              : "Estadísticas del sitio y cookies"}
+          </h2>
+          <p>
+            {en
+              ? "We count visits by day, public page and referring website domain. We do not store visitor IP addresses, full referring URLs or persistent visitor identifiers in the analytics database. These totals are page views, not unique people, and may include bots. We do not determine precise location or country. We respect browser Do Not Track and Global Privacy Control signals. The public site does not use tracking cookies. The administration panel uses a secure session cookie lasting up to eight hours."
+              : "Contamos visitas por día, página pública y dominio del sitio de procedencia. No guardamos direcciones IP, URL completas de referencia ni identificadores persistentes de visitantes en la base de estadísticas. Estos totales son vistas, no personas únicas, y pueden incluir bots. No determinamos ubicación precisa ni país. Respetamos las señales Do Not Track y Global Privacy Control del navegador. El sitio público no utiliza cookies de rastreo. El panel de administración utiliza una cookie de sesión de hasta ocho horas."}
+          </p>
+          <h2>
+            {en
+              ? "Storage, providers and retention"
+              : "Almacenamiento, proveedores y conservación"}
+          </h2>
+          <p>
+            {en
+              ? "Information is stored in the website database. Hosting and infrastructure providers may process technical connection information to operate and protect the service; access is limited to what is necessary. Contact requests are automatically removed from the active database after twelve months and can be deleted earlier on request. Statistics are retained for ninety days. Expired administration sessions are removed daily. Backup deletion must follow the hosting operator’s documented retention schedule. We do not sell personal information."
+              : "La información se almacena en la base de datos del sitio. Los proveedores de alojamiento e infraestructura pueden procesar información técnica de conexión para operar y proteger el servicio; el acceso se limita a lo necesario. Las solicitudes se eliminan automáticamente de la base activa después de doce meses y pueden eliminarse antes a petición. Las estadísticas se conservan noventa días. Las sesiones vencidas se eliminan diariamente. La eliminación en respaldos debe seguir el calendario documentado del operador del alojamiento. No vendemos información personal."}
+          </p>
+          <h2>
+            {en ? "Your choices and requests" : "Tus decisiones y solicitudes"}
+          </h2>
+          <p>
+            {en
+              ? "You may request access, correction, deletion or objection to processing, withdraw consent and ask about the use of your information by contacting:"
+              : "Puedes solicitar acceso, rectificación, cancelación u oposición al tratamiento, retirar tu consentimiento y consultar el uso de tu información escribiendo a:"}{" "}
+            {email ? (
+              <a href={"mailto:" + email}>{email}</a>
+            ) : en ? (
+              "[Privacy email pending]"
+            ) : (
+              "[Correo de privacidad pendiente]"
+            )}
+            .{" "}
+            {en
+              ? "Describe your request and provide enough information to locate the original submission. We may request proportionate identity verification. Applicable procedures and deadlines depend on the confirmed jurisdiction."
+              : "Describe tu solicitud y proporciona información suficiente para localizar el envío original. Podemos solicitar una verificación de identidad proporcional. Los procedimientos y plazos aplicables dependen de la jurisdicción que se confirme."}
+          </p>
+          <h2>{en ? "Changes to this policy" : "Cambios a esta política"}</h2>
+          <p>
+            {en
+              ? "We will publish changes here and update the date. Material changes to the purposes of processing may require new information or consent before being applied."
+              : "Publicaremos los cambios aquí y actualizaremos la fecha. Los cambios sustanciales en las finalidades del tratamiento pueden requerir información adicional o nuevo consentimiento antes de aplicarse."}
+          </p>
+        </>
+      ) : (
+        <>
+          <h2>{en ? "Website purpose" : "Objeto del sitio"}</h2>
+          <p>
+            {en
+              ? "YunitzTech presents digital product development services for small businesses, including MVPs, websites, online stores, booking systems and applications. Blog articles provide general educational information. They do not guarantee commercial results or replace advice tailored to your circumstances."
+              : "YunitzTech presenta servicios de desarrollo de productos digitales para mipymes, incluidos MVP, sitios web, tiendas en línea, reservaciones y aplicaciones. Los artículos del blog ofrecen información educativa general. No garantizan resultados comerciales ni sustituyen asesoría adecuada a tus circunstancias."}
+          </p>
+          <h2>
+            {en
+              ? "Requests and project agreements"
+              : "Solicitudes y contratación de proyectos"}
+          </h2>
+          <p>
+            {en
+              ? "Sending a form starts a conversation and does not create a service contract or payment obligation. Scope, deliverables, fees, payment milestones, timelines, support and acceptance criteria must be agreed in a separate written proposal or contract. Third-party services and their costs must be identified in that agreement."
+              : "Enviar un formulario inicia una conversación y no crea un contrato de servicios ni una obligación de pago. El alcance, entregables, honorarios, hitos de pago, plazos, soporte y criterios de aceptación se acordarán en una propuesta o contrato escrito separado. Los servicios de terceros y sus costos deberán identificarse en ese acuerdo."}
+          </p>
+          <h2>{en ? "Acceptable use" : "Uso permitido"}</h2>
+          <p>
+            {en
+              ? "Use this website lawfully and provide accurate information when contacting us. Do not attempt unauthorized access, submit malicious files, impersonate another person or interfere with the service. Administration access is restricted to authorized personnel."
+              : "Utiliza este sitio lícitamente y proporciona información veraz al contactarnos. No intentes acceder sin autorización, enviar archivos maliciosos, suplantar a otra persona ni interferir con el servicio. El acceso a la administración está restringido a personal autorizado."}
+          </p>
+          <h2>
+            {en
+              ? "Content and intellectual property"
+              : "Contenido y propiedad intelectual"}
+          </h2>
+          <p>
+            {en
+              ? "Website content is available for reading and sharing through links. Reuse of protected material requires the relevant authorization unless permitted by law. Ownership and licensing of work created for clients will be defined in each project agreement; this page does not assign rights over a future project."
+              : "El contenido está disponible para lectura y para compartir mediante enlaces. La reutilización de materiales protegidos requiere la autorización correspondiente salvo que la ley la permita. La titularidad y las licencias de los trabajos creados para clientes se definirán en cada contrato; esta página no asigna derechos sobre un proyecto futuro."}
+          </p>
+          <h2>
+            {en
+              ? "Availability and external services"
+              : "Disponibilidad y servicios externos"}
+          </h2>
+          <p>
+            {en
+              ? "We work to keep information accurate and the website operational, but interruptions and corrections may occur. External services have their own terms. Nothing on this page excludes rights or liabilities that cannot legally be excluded."
+              : "Trabajamos para mantener la información correcta y el sitio operativo, pero pueden existir interrupciones y correcciones. Los servicios externos tienen condiciones propias. Nada en esta página excluye derechos o responsabilidades que legalmente no puedan excluirse."}
+          </p>
+          <h2>
+            {en
+              ? "Contact and applicable framework"
+              : "Contacto y marco aplicable"}
+          </h2>
+          <p>
+            {owner ||
+              (en ? "[Legal name pending]" : "[Razón social pendiente]")}{" "}
+            ·{" "}
+            {country ||
+              (en ? "[Jurisdiction pending]" : "[Jurisdicción pendiente]")}
+            .{" "}
+            {email ? (
+              <a href={"mailto:" + email}>{email}</a>
+            ) : en ? (
+              "[Contact email pending]"
+            ) : (
+              "[Correo de contacto pendiente]"
+            )}
+            .{" "}
+            {en
+              ? "The applicable legal framework and any mandatory consumer protections must be confirmed for the operator’s jurisdiction before publication. Spanish and English versions describe the same website services; any project contract must specify its governing language and terms."
+              : "El marco jurídico aplicable y los derechos imperativos de consumo deben confirmarse según la jurisdicción del operador antes de publicar. Las versiones en español e inglés describen los mismos servicios; cada contrato de proyecto debe especificar su idioma y condiciones aplicables."}
+          </p>
+        </>
+      )}
+    </article>
+  </div>
+</Layout>

@@ -1,0 +1,5 @@
+NAME                           IMAGE                       COMMAND                  SERVICE   CREATED              STATUS                        PORTS
+yunitztech-prod-qa-api-1       yunitz-local-api:main       "docker-entrypoint.s…"   api       About a minute ago   Up About a minute (healthy)   
+yunitztech-prod-qa-db-1        postgres:17-alpine          "docker-entrypoint.s…"   db        5 minutes ago        Up 5 minutes (healthy)        5432/tcp
+yunitztech-prod-qa-gateway-1   yunitz-local-gateway:main   "/docker-entrypoint.…"   gateway   52 seconds ago       Up 51 seconds (healthy)       8080/tcp, 127.0.0.1:18443->8443/tcp
+yunitztech-prod-qa-web-1       yunitz-local-web:main       "docker-entrypoint.s…"   web       About a minute ago   Up 54 seconds (healthy)       

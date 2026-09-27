@@ -1,0 +1,145 @@
+---
+import "@fontsource-variable/manrope";
+import "../styles/global.css";
+import { siteUrl } from "../lib/api";
+const {
+  lang = "es",
+  title = "YunitzTech",
+  description = "",
+  alternate = "/",
+  noindex = false,
+  image = "/images/mvp-studio.webp",
+  article = false,
+} = Astro.props;
+const en = lang === "en";
+const home = en ? "/en/" : "/";
+const canonical = new URL(Astro.url.pathname.replace(/\/$/, "") || "/", siteUrl)
+  .href;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#2449e8" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={canonical} />
+    {!noindex && (
+      <>
+        <link rel="alternate" hreflang={lang} href={canonical} />
+        <link
+          rel="alternate"
+          hreflang={en ? "es" : "en"}
+          href={new URL(alternate, siteUrl).href}
+        />
+        <link
+          rel="alternate"
+          hreflang="x-default"
+          href={en ? new URL(alternate, siteUrl).href : canonical}
+        />
+      </>
+    )}
+    {noindex && <meta name="robots" content="noindex,nofollow" />}
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={article ? "article" : "website"} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={en ? "en_US" : "es_MX"} />
+    <meta property="og:image" content={new URL(image, siteUrl).href} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip" href="#main">
+      {en ? "Skip to content" : "Saltar al contenido"}
+    </a>
+    <header class="header">
+      <div class="container nav">
+        <a class="brand" href={home} aria-label="YunitzTech inicio">
+          <span class="brand-mark" aria-hidden="true">
+            y.
+          </span>
+          yunitz<span class="brand-light">tech</span>
+        </a>
+        <nav aria-label={en ? "Main navigation" : "Navegación principal"}>
+          <a href={home + "#servicios"}>{en ? "Services" : "Servicios"}</a>
+          <a href={home + "#proceso"}>
+            {en ? "Our process" : "Cómo trabajamos"}
+          </a>
+          <a href={home + "blog"}>Blog</a>
+        </nav>
+        <div class="nav-actions">
+          <a
+            class="language"
+            href={alternate}
+            lang={en ? "es" : "en"}
+            aria-label={en ? "Cambiar a español" : "Switch to English"}
+          >
+            {en ? "ES" : "EN"} <span aria-hidden="true">↗</span>
+          </a>
+          <a class="button small" href={home + "#contacto"}>
+            {en ? "Let’s talk" : "Hablemos"} <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <footer>
+      <div class="container footer-top">
+        <div>
+          <a class="brand" href={home}>
+            <span class="brand-mark" aria-hidden="true">
+              y.
+            </span>
+            yunitz<span class="brand-light">tech</span>
+          </a>
+          <p>
+            {en
+              ? "Small beginnings. Real possibilities."
+              : "Pequeños comienzos. Grandes posibilidades."}
+          </p>
+        </div>
+        <div class="footer-links">
+          <a href={home + "blog"}>Blog</a>
+          <a href={en ? "/en/privacy-policy" : "/politica-de-privacidad"}>
+            {en ? "Privacy policy" : "Política de privacidad"}
+          </a>
+          <a href={en ? "/en/terms-of-service" : "/condiciones-de-servicio"}>
+            {en ? "Terms of service" : "Condiciones de servicio"}
+          </a>
+        </div>
+      </div>
+      <div class="container footer-bottom">
+        <span>© {new Date().getFullYear()} YunitzTech</span>
+        <span>
+          {en
+            ? "Built with purpose. Made for your business."
+            : "Tecnología con propósito. Hecha para tu negocio."}
+        </span>
+      </div>
+    </footer>
+    <script>
+      if (
+        /^\/(?:en\/)?(?:blog(?:\/[a-z0-9-]+)?\/?)?$/.test(location.pathname) &&
+        navigator.doNotTrack !== "1" &&
+        !(navigator as Navigator & { globalPrivacyControl?: boolean })
+          .globalPrivacyControl
+      ) {
+        fetch("/api/view", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: location.pathname,
+            referrer: document.referrer,
+          }),
+          keepalive: true,
+        }).catch(() => {});
+      }
+    </script>
+  </body>
+</html>

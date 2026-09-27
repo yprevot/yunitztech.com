@@ -1,0 +1,73 @@
+---
+import Layout from "../layouts/Layout.astro";
+const { lang = "es", posts = [], failed = false } = Astro.props;
+const en = lang === "en";
+---
+
+<Layout
+  lang={lang}
+  title={
+    en
+      ? "MVP ideas for small businesses | YunitzTech Blog"
+      : "Ideas de MVP para mipymes | Blog YunitzTech"
+  }
+  description={
+    en
+      ? "Practical articles on validating ideas, launching an MVP and building digital tools for small businesses."
+      : "Artículos prácticos sobre validación de ideas, lanzamiento de MVP y herramientas digitales para pequeños negocios."
+  }
+  alternate={en ? "/blog" : "/en/blog"}
+>
+  <section class="container section">
+    <p class="eyebrow">
+      {en ? "The YunitzTech journal" : "El blog de YunitzTech"}
+    </p>
+    <h1>
+      {en ? "Ideas for your next step." : "Ideas para tu siguiente paso."}
+    </h1>
+    <p class="lead">
+      {en
+        ? "Less jargon. More clarity to start building your business."
+        : "Menos tecnicismos. Más claridad para empezar a construir tu negocio."}
+    </p>
+    <div class="post-grid">
+      {posts.map((p: any, i: number) => (
+        <a
+          class={"post-card tone-" + (i % 3)}
+          href={(en ? "/en" : "") + "/blog/" + p.slug}
+        >
+          <div class="post-image">
+            <img
+              src={p.image}
+              width="600"
+              height="400"
+              alt={p.image_alt}
+              loading="lazy"
+            />
+          </div>
+          <div class="post-copy">
+            <h2 style="font-size:1.4rem">{p.title}</h2>
+            <p>{p.excerpt}</p>
+            <span class="text-link">
+              {en ? "Read article" : "Leer artículo"} ↗
+            </span>
+          </div>
+        </a>
+      ))}
+    </div>
+    {failed && (
+      <p role="alert">
+        {en
+          ? "Articles are temporarily unavailable. Please try again shortly."
+          : "Los artículos no están disponibles temporalmente. Intenta nuevamente en unos minutos."}
+      </p>
+    )}
+    {!failed && !posts.length && (
+      <p>
+        {en
+          ? "New articles are on their way."
+          : "Pronto publicaremos nuevos artículos."}
+      </p>
+    )}
+  </section>
+</Layout>
