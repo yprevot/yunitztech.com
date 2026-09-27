@@ -275,7 +275,7 @@ Contexto: La web está en producción desde el 27 de septiembre de 2026 (commit 
 | --- | --- | --- | --- | --- |
 | **C1** | HSTS centralizado en gateway | Alta | **verificado** | Añadido Strict-Transport-Security en Nginx con include `security-headers.conf`, desactivado HSTS en Fastify helmet (`hsts: false`), agregado `proxy_hide_header` en `/api/` y verificado en W2 (5/5 rutas con exactamente 1 HSTS y cabeceras completas). |
 | **C2** | Dirección legal duplicada | Media | **verificado** | Creado helper `apps/web/src/lib/legal.ts` (`formatLegalAddress`, `formatJurisdiction`, `cleanLegalText`, `addressEndsWithCountry`), normalizando y eliminando puntuación/espacios finales, omitiendo país redundante e insensibilizando a mayúsculas/acentos. Pruebas unitarias en `tests/legal-address.test.mjs` cubriendo todas las combinaciones y verificación en E2E. Documentado formato en `docs/DEPLOYMENT.md`. |
-| **C3** | Avisos de GitHub Actions | Programada (antes 2026-10-19) | Pendiente | Actualizar acciones a Node 24 y fijar runner `ubuntu-24.04`. |
+| **C3** | Avisos de GitHub Actions | Programada (antes 2026-10-19) | **verificado** | Acciones actualizadas a versiones con soporte Node 24 (`actions/checkout@v7`, `actions/setup-node@v7`, `actions/upload-artifact@v7`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/build-push-action@v7`) y fijado runner `runs-on: ubuntu-24.04` en `verify`, `publish` y `deploy`. |
 | **C4** | Analítica: decidir y documentar | Decisión | Pendiente | Mantener analítica propia (recomendado) o migrar a Umami; alinear texto de política de privacidad. |
 
 ### C1 — HSTS centralizado en el gateway (Prioridad alta)
@@ -326,7 +326,15 @@ Contexto: La web está en producción desde el 27 de septiembre de 2026 (commit 
 1. Actualizar acciones a versiones mayores compatibles con Node 24.
 2. Fijar `runs-on: ubuntu-24.04` (o validar en Ubuntu 26).
 
-**Aceptación:**
+**Aceptación y Resultados (Verificado):**
+- Acciones actualizadas a las versiones mayores con runtime nativo `node24`:
+  - `actions/checkout@v4` → `actions/checkout@v7`
+  - `actions/setup-node@v4` → `actions/setup-node@v7`
+  - `actions/upload-artifact@v4` → `actions/upload-artifact@v7`
+  - `docker/setup-buildx-action@v3` → `docker/setup-buildx-action@v4`
+  - `docker/login-action@v3` → `docker/login-action@v4`
+  - `docker/build-push-action@v6` → `docker/build-push-action@v7`
+- Fijado `runs-on: ubuntu-24.04` en los tres trabajos (`verify`, `publish` y `deploy`), eliminando el aviso de migración de `ubuntu-latest` a Ubuntu 26 previsto para el 19 de octubre de 2026.
 - Ejecución completa en verde y sin avisos de deprecación.
 
 ### C4 — Analítica: decidir y documentar (Decisión, sin prisa)
