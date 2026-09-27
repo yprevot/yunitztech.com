@@ -274,7 +274,7 @@ Contexto: La web está en producción desde el 27 de septiembre de 2026 (commit 
 | ID | Corrección | Prioridad | Estado | Resumen |
 | --- | --- | --- | --- | --- |
 | **C1** | HSTS centralizado en gateway | Alta | **verificado** | Añadido Strict-Transport-Security en Nginx con include `security-headers.conf`, desactivado HSTS en Fastify helmet (`hsts: false`), agregado `proxy_hide_header` en `/api/` y verificado en W2 (5/5 rutas con exactamente 1 HSTS y cabeceras completas). |
-| **C2** | Dirección legal duplicada | Media | Pendiente | Normalizar `LEGAL_ADDRESS` y `LEGAL_COUNTRY` en `Legal.astro` para evitar puntos dobles o repetición del país; documentar formato en `docs/DEPLOYMENT.md`. |
+| **C2** | Dirección legal duplicada | Media | **verificado** | Creado helper `apps/web/src/lib/legal.ts` (`formatLegalAddress`, `formatJurisdiction`, `cleanLegalText`, `addressEndsWithCountry`), normalizando y eliminando puntuación/espacios finales, omitiendo país redundante e insensibilizando a mayúsculas/acentos. Pruebas unitarias en `tests/legal-address.test.mjs` cubriendo todas las combinaciones y verificación en E2E. Documentado formato en `docs/DEPLOYMENT.md`. |
 | **C3** | Avisos de GitHub Actions | Programada (antes 2026-10-19) | Pendiente | Actualizar acciones a Node 24 y fijar runner `ubuntu-24.04`. |
 | **C4** | Analítica: decidir y documentar | Decisión | Pendiente | Mantener analítica propia (recomendado) o migrar a Umami; alinear texto de política de privacidad. |
 
@@ -307,8 +307,14 @@ Contexto: La web está en producción desde el 27 de septiembre de 2026 (commit 
 3. Revisar coherencia con línea 176 que también usa `country`.
 4. Documentar en `docs/DEPLOYMENT.md` el formato esperado de `LEGAL_ADDRESS`.
 
-**Aceptación:**
-- Pruebas cubriendo combinaciones con/sin punto final y con/sin país, mostrando una sola vez y sin puntos dobles.
+**Aceptación y Resultados (Verificado):**
+- Módulo `apps/web/src/lib/legal.ts` con funciones `cleanLegalText`, `addressEndsWithCountry`, `formatLegalAddress` y `formatJurisdiction`.
+- Limpieza sistemática de signos de puntuación y espacios finales (`/[.,;:\s]+$/`).
+- Normalización Unicode NFD sin marcas diacríticas para comparación insensible a mayúsculas y acentos.
+- Coherencia en línea 176 (`jurisdictionDisplay`) garantizando ausencia de puntos dobles al agregar punto final.
+- `tests/legal-address.test.mjs` prueba exhaustivamente todas las combinaciones: con/sin punto final, con/sin país en dirección, mayúsculas, minúsculas, sin acentos, espacios/puntos múltiples, país con punto final, dirección vacía, país vacío, y placeholders de localización (`[Pendiente]` y `[Pending]`). Todas demuestran que el país aparece como máximo una vez y nunca existen puntos dobles (`/\.\./`).
+- `tests/e2e/site.spec.ts` valida que las páginas legales renderizadas en el navegador no contengan puntos dobles.
+- `docs/DEPLOYMENT.md` actualizado con el formato esperado y comportamiento de `LEGAL_ADDRESS` y `LEGAL_COUNTRY`.
 
 ### C3 — Avisos de GitHub Actions (Antes del 2026-10-19)
 
