@@ -26,6 +26,7 @@ import argon2 from "argon2";
 import sharp from "sharp";
 import { z, ZodError } from "zod";
 import { db } from "./db";
+sharp.concurrency(1);
 const origin = process.env.SITE_URL || "http://localhost:8080";
 function isAllowedOrigin(clientOrigin?: string): boolean {
   if (!clientOrigin) return false;

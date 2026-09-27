@@ -22,23 +22,17 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm audit --omit=dev --audit-level=high
-      - name: Create isolated test configuration
-        run: |
-          echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
-          echo 'ADMIN_EMAIL=ci@example.test' >> .env
-          echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> .env
-      - run: docker compose -f compose.dev.yml up -d --build --wait --wait-timeout 180
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - name: Verify production images and browser journeys
+        run: bash scripts/verify-production.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: browser-evidence
           path: |
             playwright-report/
-            docs/qa/
-      - run: docker compose -f compose.dev.yml down -v
-        if: always()
+            test-results/
+            qa-artifacts/
   publish:
     needs: verify
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -87,7 +81,7 @@ jobs:
           test -n "$COOLIFY_WEBHOOK"
           test -n "$COOLIFY_TOKEN"
           curl --fail-with-body --silent --show-error --retry 3 --max-time 60 \
-            --request GET --header "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"
+            --request POST --header "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"
       - name: Verify that the new revision is serving traffic
         env:
           SITE_URL: ${{ vars.SITE_URL }}
