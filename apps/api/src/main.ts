@@ -27,6 +27,26 @@ import sharp from "sharp";
 import { z, ZodError } from "zod";
 import { db } from "./db";
 const origin = process.env.SITE_URL || "http://localhost:8080";
+function isAllowedOrigin(clientOrigin?: string): boolean {
+  if (!clientOrigin) return false;
+  if (clientOrigin === origin) return true;
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      const u = new URL(clientOrigin);
+      if (
+        u.hostname === "localhost" ||
+        u.hostname === "127.0.0.1" ||
+        u.hostname === "orb.local" ||
+        u.hostname.endsWith(".orb.local")
+      ) {
+        return true;
+      }
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
 const uploads = process.env.UPLOAD_DIR || "./uploads";
 const digest = (s: string) => createHash("sha256").update(s).digest("hex");
 const locale = z.enum(["es", "en"]);
@@ -174,7 +194,12 @@ class ApiController {
     let host = "direct";
     try {
       host = new URL(d.referrer).hostname;
-      if (host === new URL(origin).hostname) host = "internal";
+      if (
+        host === new URL(origin).hostname ||
+        host === req.headers.host?.split(":")[0] ||
+        host.endsWith(".orb.local")
+      )
+        host = "internal";
     } catch {}
     await db.query(
       "INSERT INTO page_views(path,referrer) VALUES($1,$2) ON CONFLICT(day,path,referrer) DO UPDATE SET count=page_views.count+1",
@@ -457,7 +482,7 @@ async function bootstrap() {
     res.header("Cache-Control", "no-store");
     if (
       ["POST", "PUT", "DELETE", "PATCH"].includes(req.method) &&
-      req.headers.origin !== origin
+      !isAllowedOrigin(req.headers.origin)
     )
       return res.code(403).send({ error: "Origin not allowed" });
   });
