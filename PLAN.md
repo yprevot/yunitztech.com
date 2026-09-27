@@ -231,11 +231,11 @@ Todas las tareas asignadas al agente del repositorio han sido implementadas y ve
 | **A02** | Medición reproducible y prueba de pico (W1) | **verificado** | Imagen de prueba: JPEG sintético 5 023 217 bytes, 4000x5000 (20 MP), SHA256 `db7c403a771b6a40d3a14ddf2a57e801dea7d869795d96a26fa51838797f40ff`. Subida y login concurrente (Sharp + Argon2). 0 reinicios, 0 OOM (`oom=0`, `oom_kill=0`). Pico API cgroup 159 MiB vs techo 512 MiB. |
 | **A03** | Entorno de prueba de producción en CI (W2) | **verificado** | `compose.ci.yml` mapea loopback 8080. `scripts/verify-production.sh` automatiza build de targets de prod, IPAM dynamic subnet discovery para `TRUSTED_PROXY_CIDR`, proxy TLS efímero en 18443, cookies `Secure; HttpOnly; SameSite=Strict`. Integrado en `.github/workflows/deploy.yml`. |
 | **A04** | Regresiones y prueba negativa CSP (W2) | **verificado** | 8/8 pruebas E2E de Playwright pasando en verde con listener `securitypolicyviolation`. Rechazo de archivo >5 MB comprobado (HTTP 400/413). Prueba negativa con mutación `script-src 'none'` en `infra/nginx/default.conf` falló de inmediato con exit code 1; reversión a `script-src 'self'` restauró verde al 100%. |
-| **A05** | Reglas de GitHub y entorno (W3) | **pendiente externo** | Instrucciones exactas documentadas para el administrador del repositorio/entorno GitHub: check `verify` como requerido en branch protection de `main`, y entorno `production` restringido exclusivamente a la rama `main`. |
+| **A05** | Reglas de GitHub y entorno (W3) | **verificado** | Branch protection en `main` configurada con status check `verify` requerido (`strict: true`, `enforce_admins: true`). Entorno `production` restringido con política de despliegue exclusiva a la rama `main`. |
 | **A06** | Documentación y entrega (W4) | **verificado** | `docs/DEPLOYMENT.md` y `docs/QA.md` actualizados con el contrato W4, tabla de consumo real medido, comandos reproducibles y límites de la evidencia. |
-| **A07** | Umami (W5) | **opcional diferido** | Especificación preparada (`stats.yunitztech.com`). Pendiente decisión sobre coexistencia con `/api/view` y política de privacidad. |
-| **A08** | Listmonk (W5) | **opcional diferido** | Endpoint y lista identificados. Pendiente definición de copy, integración backend y autorización de correo de pruebas. |
-| **A09** | SMTP (W5) | **opcional diferido** | Servidor `mail.yunitztech.com:465` documentado. Pendiente definir casos de uso y credenciales seguras por infraestructura. |
+| **A07** | Umami (W5) | **verificado** | Integrado en C4: script cargado con `defer` y `data-do-not-track="true"` en `Layout.astro`, CSP configurada y política de privacidad actualizada. |
+| **A08** | Newsletter con Listmonk (W5) | **pendiente** | Endpoint `POST https://news.yunitztech.com/api/public/subscription` y lista `ab7fa355-30e9-4d40-bcfa-d3a965951e3b`. Pendiente componente de formulario, endpoint intermedio con protección anti-spam, confirmación y doble opt-in. |
+| **A09** | SMTP (W5) | **pendiente** | Servidor `mail.yunitztech.com:465`. Pendiente provisión de credenciales por infraestructura, transporte con reintentos/timeout y definición de eventos (notificaciones al administrador o confirmación al remitente). |
 | **A10** | Job deploy con POST (W6) | **verificado** | Modificado `.github/workflows/deploy.yml` para emitir `--request POST` en la llamada con `$COOLIFY_WEBHOOK` y token Bearer, satisfaciendo el endpoint de Coolify 4.3.23. |
 
 
@@ -353,4 +353,16 @@ Contexto: La web está en producción desde el 27 de septiembre de 2026 (commit 
 - La política de privacidad describe con exactitud los dos mecanismos de analítica en vigor.
 - CSP autoriza la carga y conexión de Umami sin violaciones de política de seguridad.
 - Pruebas E2E y suites de verificación en verde.
+
+## Tareas pendientes y backlog operativo (W5 e Infraestructura)
+
+Las tareas siguientes quedan formalmente registradas como **pendientes** para abordar en siguientes iteraciones según las prioridades del proyecto:
+
+| ID | Área | Tarea | Estado | Detalle y requisitos pendientes |
+| --- | --- | --- | --- | --- |
+| **P1** | Funcionalidad / Marketing | Newsletter con Listmonk (`W5-Listmonk`) | **Pendiente** | Integración del formulario de suscripción a newsletter vía `POST https://news.yunitztech.com/api/public/subscription` (lista `ab7fa355-30e9-4d40-bcfa-d3a965951e3b`). Requiere: diseñar el componente UI (ES/EN), crear ruta proxy en backend con validación/anti-spam (Cloudflare Turnstile o similar), manejo de estados de confirmación y flujo de doble opt-in. |
+| **P2** | Funcionalidad / Comunicaciones | Servidor de correo SMTP (`W5-SMTP`) | **Pendiente** | Integración del servicio de correo vía `mail.yunitztech.com:465` (TLS). Requiere: provisión de credenciales seguras por infraestructura, implementar transporte SMTP con timeout y reintentos, y definir qué eventos del sitio enviarán correo (notificaciones de contacto al administrador o acuse de recibo al usuario). |
+| **P3** | Infraestructura / Operativa | Respaldos programados externos | **Pendiente** | Automatizar respaldos periódicos de la base de datos PostgreSQL (`pgdata` vía `pg_dump`) y del volumen persistente de medios (`uploads`) hacia almacenamiento externo seguro, definiendo política de retención y cifrado. |
+| **P4** | Infraestructura / Operativa | Verificación de despliegue exclusivo por webhook en Coolify | **Pendiente** | Verificar en el panel de Coolify que el autodespliegue por push de Git esté desactivado, garantizando que todo despliegue sea activado únicamente por el webhook `POST` de GitHub Actions tras pasar `verify` y `publish`. |
+
 
