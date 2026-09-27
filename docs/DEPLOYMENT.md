@@ -97,6 +97,14 @@ El comando reemplaza el hash de la cuenta indicada por `ADMIN_EMAIL` y revoca su
 
 Cada imagen tiene también un tag con el SHA de Git. Para volver a una revisión conocida, establece `IMAGE_TAG` a ese SHA para los tres servicios y redespliega en Coolify. Antes de hacerlo verifica la compatibilidad del esquema. Las imágenes y los volúmenes tienen ciclos de vida diferentes: un rollback de imagen no revierte los datos.
 
+## Analítica y privacidad — C4
+
+El sitio implementa un modelo de medición híbrido respetuoso con la privacidad sin almacenar datos personales ni utilizar cookies de rastreo en el sitio público:
+1. **Analítica propia interna (`/api/view`):** Registra agregados numéricos diarios por página y dominio de procedencia sin almacenar direcciones IP, URLs completas ni identificadores de visitantes.
+2. **Instancia privada de Umami (`https://stats.yunitztech.com`):** Analítica open-source alojada en infraestructura propia (website id `e0ea1d12-7f07-4fe9-9825-9afb0fbcde66`), cargada de forma asíncrona (`defer`) con atributo `data-do-not-track="true"`.
+3. **Respeto a señales de privacidad:** Ambos sistemas respetan las señales `Do Not Track` (`DNT`) y `Global Privacy Control` (`GPC`) del navegador, omitiendo la recolección si el usuario las tiene activas.
+4. **Seguridad CSP:** La directiva Content-Security-Policy en Nginx (`infra/nginx/security-headers.conf`) autoriza de forma estricta `https://stats.yunitztech.com` en `script-src` y `connect-src` sin permitir `unsafe-inline` para scripts ni comodines.
+
 ## Fuentes consultadas
 
 - [Docker Compose en Coolify](https://github.com/coollabsio/coolify-docs/blob/v4.x/content/docs/knowledge-base/docker/compose.mdx): red interna y puertos del host.

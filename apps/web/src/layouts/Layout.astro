@@ -50,6 +50,12 @@ const canonical = new URL(Astro.url.pathname.replace(/\/$/, "") || "/", siteUrl)
     <meta property="og:locale" content={en ? "en_US" : "es_MX"} />
     <meta property="og:image" content={new URL(image, siteUrl).href} />
     <meta name="twitter:card" content="summary_large_image" />
+    <script
+      defer
+      src="https://stats.yunitztech.com/script.js"
+      data-website-id="e0ea1d12-7f07-4fe9-9825-9afb0fbcde66"
+      data-do-not-track="true"
+    ></script>
     <slot name="head" />
   </head>
   <body>

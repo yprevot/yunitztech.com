@@ -276,7 +276,7 @@ Contexto: La web está en producción desde el 27 de septiembre de 2026 (commit 
 | **C1** | HSTS centralizado en gateway | Alta | **verificado** | Añadido Strict-Transport-Security en Nginx con include `security-headers.conf`, desactivado HSTS en Fastify helmet (`hsts: false`), agregado `proxy_hide_header` en `/api/` y verificado en W2 (5/5 rutas con exactamente 1 HSTS y cabeceras completas). |
 | **C2** | Dirección legal duplicada | Media | **verificado** | Creado helper `apps/web/src/lib/legal.ts` (`formatLegalAddress`, `formatJurisdiction`, `cleanLegalText`, `addressEndsWithCountry`), normalizando y eliminando puntuación/espacios finales, omitiendo país redundante e insensibilizando a mayúsculas/acentos. Pruebas unitarias en `tests/legal-address.test.mjs` cubriendo todas las combinaciones y verificación en E2E. Documentado formato en `docs/DEPLOYMENT.md`. |
 | **C3** | Avisos de GitHub Actions | Programada (antes 2026-10-19) | **verificado** | Acciones actualizadas a versiones con soporte Node 24 (`actions/checkout@v7`, `actions/setup-node@v7`, `actions/upload-artifact@v7`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/build-push-action@v7`) y fijado runner `runs-on: ubuntu-24.04` en `verify`, `publish` y `deploy`. |
-| **C4** | Analítica: decidir y documentar | Decisión | Pendiente | Mantener analítica propia (recomendado) o migrar a Umami; alinear texto de política de privacidad. |
+| **C4** | Analítica: decidir y documentar | Decisión | **verificado** | Decidido mantener ambas opciones. Integrado script de Umami (`https://stats.yunitztech.com/script.js`, id `e0ea1d12-7f07-4fe9-9825-9afb0fbcde66`, `data-do-not-track="true"`) en `Layout.astro` junto a la analítica propia `/api/view`. Autorizado `https://stats.yunitztech.com` en `script-src` y `connect-src` de CSP en `security-headers.conf` y `dev.conf`. Actualizada política de privacidad en `Legal.astro` (ES/EN) y verificadas cabeceras y mocks en E2E. |
 
 ### C1 — HSTS centralizado en el gateway (Prioridad alta)
 
@@ -337,14 +337,20 @@ Contexto: La web está en producción desde el 27 de septiembre de 2026 (commit 
 - Fijado `runs-on: ubuntu-24.04` en los tres trabajos (`verify`, `publish` y `deploy`), eliminando el aviso de migración de `ubuntu-latest` a Ubuntu 26 previsto para el 19 de octubre de 2026.
 - Ejecución completa en verde y sin avisos de deprecación.
 
-### C4 — Analítica: decidir y documentar (Decisión, sin prisa)
+### C4 — Analítica: decidir y documentar (Decisión)
 
 **Situación actual:**
-- La política de privacidad describe analítica propia. La plataforma ofrece además Umami (`https://stats.yunitztech.com`, id `e0ea1d12-7f07-4fe9-9825-9afb0fbcde66`).
+- La política de privacidad describía analítica propia. La plataforma ofrecía además la opción de Umami (`https://stats.yunitztech.com`, id `e0ea1d12-7f07-4fe9-9825-9afb0fbcde66`).
 
-**Qué hacer:**
-- Elegir entre mantener analítica propia (recomendado por ahora) o pasar a Umami (ajustando CSP, script y política).
+**Decisión y Qué se hizo:**
+- Se acordó mantener ambas opciones de momento: la analítica propia agregada en `/api/view` y la instancia propia de Umami.
+- En `apps/web/src/layouts/Layout.astro` se incluyó el script de Umami de forma diferida (`defer`) con `data-do-not-track="true"`, preservando además la llamada a `/api/view` condicionada a DNT y GPC.
+- En `infra/nginx/security-headers.conf` y `infra/nginx/dev.conf` se autorizó explícitamente `https://stats.yunitztech.com` en las directivas `script-src` y `connect-src` de la Content-Security-Policy sin emplear comodines ni `unsafe-inline` para scripts.
+- En `apps/web/src/components/Legal.astro` se actualizó la sección de «Estadísticas del sitio y cookies» (ES/EN) para describir con precisión el uso de ambos sistemas, clarificando que ninguno almacena direcciones IP ni usa cookies de rastreo en el sitio público.
+- En `tests/e2e/site.spec.ts` se añadieron mocks para interceptar `https://stats.yunitztech.com/**` en Playwright sin depender de red externa ni generar tráfico sintético en producción, y se actualizaron las aserciones de directivas CSP.
 
-**Aceptación:**
-- La política de privacidad describe exactamente la analítica que usa la web.
+**Aceptación y Resultados (Verificado):**
+- La política de privacidad describe con exactitud los dos mecanismos de analítica en vigor.
+- CSP autoriza la carga y conexión de Umami sin violaciones de política de seguridad.
+- Pruebas E2E y suites de verificación en verde.
 
