@@ -96,6 +96,15 @@ test("Spanish and English SSR, SEO, legal pages, and all seeded articles", async
     expect(response?.status()).toBe(200);
     await expect(page.locator("h1")).toBeVisible();
     await expect(page.locator("link[rel=canonical]")).toHaveCount(1);
+    if (
+      url.includes("privacy") ||
+      url.includes("politica") ||
+      url.includes("terms") ||
+      url.includes("condiciones")
+    ) {
+      const prose = await page.locator("article.prose").innerText();
+      expect(prose).not.toMatch(/\.\./);
+    }
   }
   for (const locale of ["es", "en"]) {
     const posts = await (await request.get("/api/posts/" + locale)).json();

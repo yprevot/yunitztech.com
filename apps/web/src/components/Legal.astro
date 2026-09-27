@@ -1,5 +1,10 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import {
+  formatLegalAddress,
+  formatJurisdiction,
+  cleanLegalText,
+} from "../lib/legal";
 const { lang = "es", type = "privacy" } = Astro.props;
 const en = lang === "en";
 const privacy = type === "privacy";
@@ -10,11 +15,13 @@ const title = privacy
   : en
     ? "Terms of service"
     : "Condiciones de servicio";
-const owner = process.env.LEGAL_NAME;
-const country = process.env.LEGAL_COUNTRY;
-const email = process.env.PRIVACY_EMAIL;
-const address = process.env.LEGAL_ADDRESS;
-const complete = owner && country && email && address;
+const owner = process.env.LEGAL_NAME?.trim();
+const rawCountry = process.env.LEGAL_COUNTRY;
+const country = cleanLegalText(rawCountry);
+const email = process.env.PRIVACY_EMAIL?.trim();
+const rawAddress = process.env.LEGAL_ADDRESS;
+const address = cleanLegalText(rawAddress);
+const complete = Boolean(owner && country && email && address);
 const alternate = privacy
   ? en
     ? "/politica-de-privacidad"
@@ -22,6 +29,15 @@ const alternate = privacy
   : en
     ? "/condiciones-de-servicio"
     : "/en/terms-of-service";
+const legalAddressDisplay = formatLegalAddress(
+  rawAddress,
+  rawCountry,
+  en ? "[Pending]" : "[Pendiente]",
+);
+const jurisdictionDisplay = formatJurisdiction(
+  rawCountry,
+  en ? "[Jurisdiction pending]" : "[Jurisdicción pendiente]",
+);
 ---
 
 <Layout
@@ -60,7 +76,7 @@ const alternate = privacy
             {owner ||
               (en ? "[Legal name pending]" : "[Razón social pendiente]")}
             . {en ? "Address:" : "Domicilio:"}{" "}
-            {address || (en ? "[Pending]" : "[Pendiente]")}. {country || ""}.
+            {legalAddressDisplay}
           </p>
           <h2>{en ? "Information we collect" : "Información que recabamos"}</h2>
           <p>
@@ -172,10 +188,7 @@ const alternate = privacy
           <p>
             {owner ||
               (en ? "[Legal name pending]" : "[Razón social pendiente]")}{" "}
-            ·{" "}
-            {country ||
-              (en ? "[Jurisdiction pending]" : "[Jurisdicción pendiente]")}
-            .{" "}
+            · {jurisdictionDisplay}.{" "}
             {email ? (
               <a href={"mailto:" + email}>{email}</a>
             ) : en ? (
