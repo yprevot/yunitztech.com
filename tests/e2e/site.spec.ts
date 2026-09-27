@@ -31,6 +31,16 @@ const login = async (page: any) => {
   }
   await expect(page.locator("#dashboard")).toBeVisible();
 };
+test.beforeEach(async ({ context }) => {
+  await context.route("https://stats.yunitztech.com/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/javascript",
+      body: "/* umami test mock */",
+    }),
+  );
+});
+
 test("Production gateway health, revision, CSP, HSTS and compiled assets", async ({
   page,
   request,
@@ -68,11 +78,19 @@ test("Production gateway health, revision, CSP, HSTS and compiled assets", async
   expect(response?.status()).toBe(200);
   const csp = response?.headers()["content-security-policy"] || "";
   const directives = Object.fromEntries(
-    csp.split(";").map((part) => part.trim().split(/\s+/, 2)).filter((part) => part[0]),
+    csp
+      .split(";")
+      .map((part) => {
+        const trimmed = part.trim();
+        const firstSpace = trimmed.indexOf(" ");
+        if (firstSpace === -1) return [trimmed, ""];
+        return [trimmed.slice(0, firstSpace), trimmed.slice(firstSpace + 1)];
+      })
+      .filter((part) => part[0]),
   );
   expect(directives["default-src"]).toBe("'self'");
-  expect(directives["script-src"]).toBe("'self'");
-  expect(directives["connect-src"]).toBe("'self'");
+  expect(directives["script-src"]).toBe("'self' https://stats.yunitztech.com");
+  expect(directives["connect-src"]).toBe("'self' https://stats.yunitztech.com");
   expect(directives["object-src"]).toBe("'none'");
   expect(violations).toEqual([]);
   await expect(page.locator("h1")).toBeVisible();
