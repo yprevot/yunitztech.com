@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 const env = process.env.ADMIN_PASSWORD
   ? process.env
   : Object.fromEntries(
@@ -18,9 +18,55 @@ const login = async (page: any) => {
   await page
     .getByLabel("Contraseña", { exact: true })
     .fill(env.ADMIN_PASSWORD!);
+  const response = page.waitForResponse(
+    (r: any) => r.url().endsWith("/api/login") && r.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
+  const loginResponse = await response;
+  if (process.env.TEST_PRODUCTION === "1") {
+    const cookie = (await loginResponse.allHeaders())["set-cookie"] || "";
+    expect(cookie).toContain("Secure");
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Strict");
+  }
   await expect(page.locator("#dashboard")).toBeVisible();
 };
+test("Production gateway health, revision, CSP and compiled assets", async ({
+  page,
+  request,
+}) => {
+  const httpUrl = process.env.TEST_HTTP_URL || process.env.TEST_URL || "http://localhost:8080";
+  for (const path of ["/health", "/api/health", "/version.json"]) {
+    expect((await request.get(httpUrl + path)).status()).toBe(200);
+  }
+  const version = await (await request.get(httpUrl + "/version.json")).json();
+  if (process.env.EXPECTED_SHA) expect(version.revision).toBe(process.env.EXPECTED_SHA);
+  const violations: any[] = [];
+  await page.exposeFunction("onSecurityPolicyViolation", (v: any) => {
+    violations.push(v);
+  });
+  await page.addInitScript(() => {
+    document.addEventListener("securitypolicyviolation", (e) => {
+      (window as any).onSecurityPolicyViolation({
+        blockedURI: e.blockedURI,
+        violatedDirective: e.violatedDirective,
+      });
+    });
+  });
+  const response = await page.goto(httpUrl);
+  expect(response?.status()).toBe(200);
+  const csp = response?.headers()["content-security-policy"] || "";
+  const directives = Object.fromEntries(
+    csp.split(";").map((part) => part.trim().split(/\s+/, 2)).filter((part) => part[0]),
+  );
+  expect(directives["default-src"]).toBe("'self'");
+  expect(directives["script-src"]).toBe("'self'");
+  expect(directives["connect-src"]).toBe("'self'");
+  expect(directives["object-src"]).toBe("'none'");
+  expect(violations).toEqual([]);
+  await expect(page.locator("h1")).toBeVisible();
+  expect(await page.evaluate(() => document.styleSheets.length)).toBeGreaterThan(0);
+});
 test("Spanish and English SSR, SEO, legal pages, and all seeded articles", async ({
   page,
   request,
@@ -73,7 +119,7 @@ test("Responsive layout, keyboard access and WCAG automated checks", async ({
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    await page.screenshot({ path: `docs/qa/${name}.png`, fullPage: true });
+    await page.screenshot({ path: `test-results/${name}.png`, fullPage: true });
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
       .analyze();
@@ -123,6 +169,7 @@ test("Contact, admin inbox, status and deletion", async ({ page }) => {
 test("CMS uploads, publishes, renders safely and unpublishes without rebuild", async ({
   page,
   request,
+  browser,
 }) => {
   await login(page);
   await page.getByRole("button", { name: "Artículos", exact: true }).click();
@@ -142,9 +189,21 @@ test("CMS uploads, publishes, renders safely and unpublishes without rebuild", a
       '## Una primera prueba\n\nEste artículo verifica que podemos publicar contenido y mostrar texto seguro. <script>alert("xss")</script>',
     );
   await f.locator("[name=image_alt]").fill("Negocio digital de prueba");
-  await page
-    .locator("#post-upload")
-    .setInputFiles("apps/web/public/images/mvp-studio.webp");
+  const uploadImage =
+    process.env.TEST_UPLOAD_IMAGE || "apps/web/public/images/mvp-studio.webp";
+  if (process.env.TEST_UPLOAD_IMAGE) {
+    expect(statSync(uploadImage).size).toBeGreaterThanOrEqual(5_000_000);
+    expect(statSync(uploadImage).size).toBeLessThanOrEqual(5 * 1024 * 1024);
+  }
+  const concurrentPage = await browser.newPage({
+    baseURL: process.env.TEST_URL || "http://localhost:8080",
+    ignoreHTTPSErrors: true,
+  });
+  await Promise.all([
+    page.locator("#post-upload").setInputFiles(uploadImage),
+    login(concurrentPage),
+  ]);
+  await concurrentPage.close();
   await expect(page.locator("#admin-status")).toContainText("Imagen lista");
   await f.locator("[name=published]").check();
   await f.getByRole("button", { name: "Guardar artículo" }).click();
@@ -178,7 +237,7 @@ test("CMS uploads, publishes, renders safely and unpublishes without rebuild", a
   await expect(page.locator("#admin-status")).toContainText(
     "Portada actualizada",
   );
-  await page.screenshot({ path: "docs/qa/dashboard.png", fullPage: true });
+  await page.screenshot({ path: "test-results/dashboard.png", fullPage: true });
 });
 test("Authentication, CSRF, input validation and image restrictions", async ({
   request,
@@ -225,6 +284,17 @@ test("Authentication, CSRF, input validation and image restrictions", async ({
       .status;
   });
   expect(invalid).toBe(400);
+  const oversized = await page.evaluate(async () => {
+    const form = new FormData();
+    form.append(
+      "image",
+      new Blob([new Uint8Array(5 * 1024 * 1024 + 1024)], { type: "image/png" }),
+      "large.png",
+    );
+    return (await fetch("/api/admin/upload", { method: "POST", body: form }))
+      .status;
+  });
+  expect([400, 413]).toContain(oversized);
 });
 
 test("Analytics increments aggregate views and respects browser opt-out", async ({

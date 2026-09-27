@@ -3,6 +3,8 @@
 name: yunitztech
 services:
   gateway:
+    mem_limit: 64m
+    cpus: 0.25
     environment:
       TRUSTED_PROXY_CIDR: ${TRUSTED_PROXY_CIDR:?Set the exact Coolify proxy IP or dedicated proxy subnet}
     image: ${IMAGE_PREFIX:?Set lowercase ghcr.io/owner/repo}-gateway:${IMAGE_TAG:-main}
@@ -21,6 +23,8 @@ services:
       retries: 5
     networks: [frontend]
   web:
+    mem_limit: 256m
+    cpus: 0.5
     image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}-web:${IMAGE_TAG:-main}
     restart: unless-stopped
     user: "1000:1000"
@@ -29,6 +33,7 @@ services:
     security_opt: [no-new-privileges:true]
     tmpfs: ["/tmp:size=32m,mode=1777"]
     environment:
+      NODE_OPTIONS: --max-old-space-size=176
       API_URL: http://api:3000
       SITE_URL: ${SITE_URL:?Set canonical HTTPS origin}
       LEGAL_NAME: ${LEGAL_NAME:?Set legal entity}
@@ -50,6 +55,8 @@ services:
       api: { condition: service_healthy }
     networks: [frontend]
   api:
+    mem_limit: 512m
+    cpus: 1.0
     image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}-api:${IMAGE_TAG:-main}
     restart: unless-stopped
     user: "1000:1000"
@@ -58,6 +65,7 @@ services:
     security_opt: [no-new-privileges:true]
     tmpfs: ["/tmp:size=32m,mode=1777"]
     environment:
+      NODE_OPTIONS: --max-old-space-size=320
       SITE_URL: ${SITE_URL:?Set SITE_URL}
       DATABASE_URL: postgresql://yunitz:${POSTGRES_PASSWORD:?Set URL-safe database password}@db:5432/yunitz
       ADMIN_EMAIL: ${ADMIN_EMAIL:?Set admin email}
@@ -79,6 +87,8 @@ services:
       retries: 10
     networks: [backend, frontend]
   db:
+    mem_limit: 256m
+    cpus: 0.5
     image: postgres:17-alpine
     restart: unless-stopped
     security_opt: [no-new-privileges:true]

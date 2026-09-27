@@ -1,0 +1,6 @@
+# Run the unmodified production images behind a loopback-only test port.
+# CI_GATEWAY_PORT is for local runs alongside a developer stack; CI uses 8080.
+services:
+  gateway:
+    ports:
+      - "127.0.0.1:${CI_GATEWAY_PORT:-8080}:8080"
