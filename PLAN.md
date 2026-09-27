@@ -267,3 +267,70 @@ Todas las tareas asignadas al agente del repositorio han sido implementadas y ve
 - En `.github/workflows/deploy.yml`, se cambió `--request GET` por `--request POST` en la invocación a `$COOLIFY_WEBHOOK`.
 - En Coolify 4.3.23, la API rechaza peticiones GET sobre `/api/v1/deploy` y solo procesa el despliegue mediante peticiones POST con el token Bearer autorizado.
 
+## Correcciones posteriores al despliegue (Post-Deploy)
+
+Contexto: La web está en producción desde el 27 de septiembre de 2026 (commit `3b5a046`) y funciona correctamente. W1, W2, W3 y W6 están revisados y bien. Los ajustes siguientes fueron detectados en la verificación posterior al despliegue. Ninguno impide que la web siga funcionando.
+
+| ID | Corrección | Prioridad | Estado | Resumen |
+| --- | --- | --- | --- | --- |
+| **C1** | HSTS centralizado en gateway | Alta | **verificado** | Añadido Strict-Transport-Security en Nginx con include `security-headers.conf`, desactivado HSTS en Fastify helmet (`hsts: false`), agregado `proxy_hide_header` en `/api/` y verificado en W2 (5/5 rutas con exactamente 1 HSTS y cabeceras completas). |
+| **C2** | Dirección legal duplicada | Media | Pendiente | Normalizar `LEGAL_ADDRESS` y `LEGAL_COUNTRY` en `Legal.astro` para evitar puntos dobles o repetición del país; documentar formato en `docs/DEPLOYMENT.md`. |
+| **C3** | Avisos de GitHub Actions | Programada (antes 2026-10-19) | Pendiente | Actualizar acciones a Node 24 y fijar runner `ubuntu-24.04`. |
+| **C4** | Analítica: decidir y documentar | Decisión | Pendiente | Mantener analítica propia (recomendado) o migrar a Umami; alinear texto de política de privacidad. |
+
+### C1 — HSTS centralizado en el gateway (Prioridad alta)
+
+**Situación actual:**
+- Solo las respuestas de la API (`/api/*`) llevan `Strict-Transport-Security`, porque lo añade `@fastify/helmet` con su valor por defecto: `max-age=31536000; includeSubDomains`.
+- Las páginas (`/`, `/politica-de-privacidad`, `/admin`…) y `/version.json` no lo llevan.
+- `location = /health` no tiene ninguna cabecera de seguridad debido a que en Nginx, si un `location` define su propio `add_header`, deja de heredar los del bloque `server`.
+
+**Qué hacer:**
+1. En `infra/nginx/default.conf`, a nivel de `server`, añadir `add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;` (mismo valor que ya envía la API, sin preload).
+2. En la API (`apps/api/src/main.ts`), desactivar el HSTS de helmet (`hsts: false`) para que no salga duplicado.
+3. Centralizar las cabeceras de seguridad en un include común (`infra/nginx/security-headers.conf`) e incluirlo tanto a nivel de `server` como en los `location` con `add_header` propio (`/health`). En `/health`, usar `default_type text/plain;` en lugar de `add_header Content-Type`.
+4. En `tests/e2e/site.spec.ts` (W2), añadir comprobaciones explícitas de que `/`, `/politica-de-privacidad`, `/version.json`, `/health` y `/api/health` devuelven exactamente una cabecera `Strict-Transport-Security` y las demás cabeceras de seguridad.
+
+**Aceptación:**
+- `curl -sI` sobre `/`, `/politica-de-privacidad`, `/version.json`, `/health` y `/api/health` devuelve exactamente una cabecera `Strict-Transport-Security`.
+- Las demás cabeceras de seguridad aparecen en todas esas rutas.
+- W2 lo comprueba en CI.
+
+### C2 — Dirección legal duplicada (Prioridad media)
+
+**Situación actual:**
+- `apps/web/src/components/Legal.astro` compone `{address}. {country}.`. Con `LEGAL_ADDRESS="Cuernavaca, Morelos, México."` y `LEGAL_COUNTRY="México"`, la página muestra «Cuernavaca, Morelos, México.. México.».
+
+**Qué hacer:**
+1. Quitar puntuación y espacios finales de la dirección.
+2. No añadir el país si la dirección ya termina en él (ignorando mayúsculas y acentos).
+3. Revisar coherencia con línea 176 que también usa `country`.
+4. Documentar en `docs/DEPLOYMENT.md` el formato esperado de `LEGAL_ADDRESS`.
+
+**Aceptación:**
+- Pruebas cubriendo combinaciones con/sin punto final y con/sin país, mostrando una sola vez y sin puntos dobles.
+
+### C3 — Avisos de GitHub Actions (Antes del 2026-10-19)
+
+**Situación actual:**
+- Avisos de deprecación de Node 20 en acciones (`actions/checkout`, `actions/setup-node`, `actions/upload-artifact`, `docker/setup-buildx-action`, `docker/login-action`, `docker/build-push-action`).
+- Migración de `ubuntu-latest` a Ubuntu 26 el 19 de octubre de 2026.
+
+**Qué hacer:**
+1. Actualizar acciones a versiones mayores compatibles con Node 24.
+2. Fijar `runs-on: ubuntu-24.04` (o validar en Ubuntu 26).
+
+**Aceptación:**
+- Ejecución completa en verde y sin avisos de deprecación.
+
+### C4 — Analítica: decidir y documentar (Decisión, sin prisa)
+
+**Situación actual:**
+- La política de privacidad describe analítica propia. La plataforma ofrece además Umami (`https://stats.yunitztech.com`, id `e0ea1d12-7f07-4fe9-9825-9afb0fbcde66`).
+
+**Qué hacer:**
+- Elegir entre mantener analítica propia (recomendado por ahora) o pasar a Umami (ajustando CSP, script y política).
+
+**Aceptación:**
+- La política de privacidad describe exactamente la analítica que usa la web.
+

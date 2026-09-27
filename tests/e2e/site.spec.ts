@@ -31,13 +31,24 @@ const login = async (page: any) => {
   }
   await expect(page.locator("#dashboard")).toBeVisible();
 };
-test("Production gateway health, revision, CSP and compiled assets", async ({
+test("Production gateway health, revision, CSP, HSTS and compiled assets", async ({
   page,
   request,
 }) => {
   const httpUrl = process.env.TEST_HTTP_URL || process.env.TEST_URL || "http://localhost:8080";
-  for (const path of ["/health", "/api/health", "/version.json"]) {
-    expect((await request.get(httpUrl + path)).status()).toBe(200);
+  for (const path of ["/", "/politica-de-privacidad", "/version.json", "/health", "/api/health"]) {
+    const res = await request.get(httpUrl + path);
+    expect(res.status(), `Status 200 for ${path}`).toBe(200);
+    const headers = res.headersArray();
+    const hsts = headers.filter((h) => h.name.toLowerCase() === "strict-transport-security");
+    expect(hsts.length, `Expected exactly 1 Strict-Transport-Security header on ${path}`).toBe(1);
+    expect(hsts[0].value).toBe("max-age=31536000; includeSubDomains");
+    const hMap = res.headers();
+    expect(hMap["x-content-type-options"], `Expected nosniff on ${path}`).toBe("nosniff");
+    expect(hMap["x-frame-options"], `Expected DENY on ${path}`).toBe("DENY");
+    expect(hMap["referrer-policy"], `Expected Referrer-Policy on ${path}`).toBe("strict-origin-when-cross-origin");
+    expect(hMap["permissions-policy"], `Expected Permissions-Policy on ${path}`).toBe("camera=(), microphone=(), geolocation=()");
+    expect(hMap["content-security-policy"], `Expected CSP on ${path}`).toContain("default-src 'self'");
   }
   const version = await (await request.get(httpUrl + "/version.json")).json();
   if (process.env.EXPECTED_SHA) expect(version.revision).toBe(process.env.EXPECTED_SHA);

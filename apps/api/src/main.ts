@@ -470,7 +470,7 @@ async function bootstrap() {
       };
   });
   await app.register(cookie);
-  await app.register(helmet, { contentSecurityPolicy: false });
+  await app.register(helmet, { contentSecurityPolicy: false, hsts: false });
   await app.register(rateLimit, {
     max: 120,
     timeWindow: "1 minute",
