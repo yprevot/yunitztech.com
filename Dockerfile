@@ -34,6 +34,7 @@ CMD ["node","apps/web/dist/server/entry.mjs"]
 FROM nginxinc/nginx-unprivileged:1.28-alpine AS gateway
 ENV NGINX_ENVSUBST_OUTPUT_DIR=/tmp/nginx
 COPY infra/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY infra/nginx/security-headers.conf /etc/nginx/security-headers.conf
 COPY infra/nginx/default.conf /etc/nginx/templates/default.conf.template
 
 COPY --chmod=755 infra/nginx/05-runtime-dirs.sh /docker-entrypoint.d/05-runtime-dirs.sh
