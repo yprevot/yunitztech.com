@@ -83,6 +83,7 @@ jobs:
           sbom: true
   deploy:
     needs: publish
+    if: vars.POSTGRES18_MIGRATION_READY == 'true'
     runs-on: ubuntu-24.04
     environment: production
     steps:
@@ -107,7 +108,9 @@ jobs:
               curl --fail --silent --show-error --max-time 15 "$SITE_URL/api/health"
               exit 0
             fi
+            if [ "$attempt" -eq 60 ]; then
+              echo 'Coolify has not served the expected revision within 10 minutes.'
+              exit 1
+            fi
             sleep 10
           done
-          echo 'Coolify has not served the expected revision within 10 minutes.'
-          exit 1

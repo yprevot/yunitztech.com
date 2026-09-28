@@ -15,35 +15,49 @@
 | Variables obligatorias | `POSTGRES_PASSWORD`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `LEGAL_NAME`, `LEGAL_COUNTRY`, `LEGAL_ADDRESS`, `PRIVACY_EMAIL`, `TRUSTED_PROXY_CIDR` |
 | Secretos GitHub | `COOLIFY_WEBHOOK`, `COOLIFY_TOKEN` (permiso mínimo de despliegue) |
 | Variable GitHub `production` | `SITE_URL` |
+| Variable de seguridad temporal | `POSTGRES18_MIGRATION_READY` (mantener sin definir hasta completar la migración) |
 
 No renombrar variables ni añadir interpolaciones obligatorias `${…:?}` sin coordinar antes el contrato con infraestructura. Los valores de `NODE_OPTIONS` están integrados como literales dentro de `compose.prod.yml`. Mantener los nombres de servicios y la ausencia de `ports` en producción. Para el salto mayor de PostgreSQL se conserva `pgdata` y se crea `pgdata18`, tal como se explica abajo.
 
 El workflow instala Docker Engine 29.8.1 para las verificaciones y publicaciones. La versión del motor del host de producción se administra en Coolify/VPS por separado y debe actualizarse a 29.8.1 antes de desplegar esta versión.
 
+El trabajo de despliegue de GitHub Actions exige `POSTGRES18_MIGRATION_READY=true`. Al integrar este cambio, CI verifica y publica las imágenes, pero **no llama al webhook de Coolify** mientras esa variable no esté activa. Mantén el valor sin definir durante la preparación y la migración; activarlo antes de restaurar permitiría que el despliegue automático arranque la aplicación con la base vacía.
+
 ## Migrar PostgreSQL 17 a 18.6
 
-PostgreSQL 18 requiere una migración entre versiones mayores; cambiar la etiqueta de imagen no migra el clúster. La imagen oficial cambió `PGDATA` a `/var/lib/postgresql/18/docker` y el volumen debe montarse en `/var/lib/postgresql`. Para mantener intactos los archivos de PostgreSQL 17 y permitir rollback, Compose crea un volumen nuevo llamado `pgdata18`; el volumen existente `pgdata` no se elimina ni se reutiliza. **Antes de desplegar, haz y verifica un respaldo lógico.**
+PostgreSQL 18 requiere una migración entre versiones mayores; cambiar la etiqueta de imagen no migra el clúster. La imagen oficial cambió `PGDATA` a `/var/lib/postgresql/18/docker` y el volumen debe montarse en `/var/lib/postgresql`. Para mantener intactos los archivos de PostgreSQL 17 y permitir rollback, Compose crea un volumen nuevo llamado `pgdata18`; el volumen existente `pgdata` no se elimina ni se reutiliza. **No habilites el webhook normal de despliegue hasta acabar todos los pasos siguientes.** Coolify genera su propia definición Compose y puede normalizar nombres de volúmenes y redes; antes de actuar, contrasta el compose desplegable y los storages que muestra Coolify con los valores reales de producción. [Coolify documenta esa diferencia y recomienda revisar los storages antes de actualizar](https://coolify.io/docs/services/configuration/docker-compose).
 
-1. Programa una ventana de mantenimiento y detén el tráfico/escrituras de `gateway`, `web` y `api`.
-2. Con PostgreSQL 17 aún activo, crea un respaldo fuera del volumen de base de datos y guárdalo en un destino seguro:
-
-   ```sh
-   mkdir -p backups
-   chmod 700 backups
-   docker compose -f compose.prod.yml exec -T db pg_dump -U yunitz -d yunitz -Fc > backups/yunitz-pg17.dump
-   ```
-
-   Comprueba que el archivo no esté vacío y conserva también un respaldo recuperable del volumen original.
-3. Detén `db`. Actualiza el despliegue con esta configuración y arranca únicamente `db`. Compose creará `pgdata18` vacío y PostgreSQL 18.6 inicializará su nuevo clúster en `/var/lib/postgresql/18/docker`. El volumen anterior `pgdata` conserva intacto el clúster 17.
-4. Restaura el respaldo antes de volver a arrancar `api`, `web` y `gateway`:
+1. Integra el cambio mientras `POSTGRES18_MIGRATION_READY` permanezca sin definir. La ejecución de `main` debe publicar las imágenes y dejar el trabajo `deploy` omitido; confirma ese estado en Actions.
+2. Programa una ventana de mantenimiento. Identifica en Coolify el contenedor `db`, el nombre real del volumen PostgreSQL 17 y la definición Compose desplegable. Verifica que el volumen antiguo siga asignado y que `pgdata18` sea un volumen nuevo. No uses `docker compose down -v`, no elimines volúmenes y no supongas que el nombre visible coincide con el nombre de Docker.
+3. Con PostgreSQL 17 aún activo, guarda un respaldo lógico fuera del volumen de base de datos y fuera del contenedor. En el host, define `DB_CONTAINER` con el contenedor identificado en Coolify y un directorio protegido con espacio suficiente:
 
    ```sh
-   docker compose -f compose.prod.yml exec -T db pg_restore --clean --if-exists --no-owner -U yunitz -d yunitz < backups/yunitz-pg17.dump
+   set -euo pipefail
+   : "${DB_CONTAINER:?Define el contenedor PostgreSQL 17 identificado en Coolify}"
+   umask 077
+   install -d -m 700 /root/yunitz-pg-migration
+   docker exec "$DB_CONTAINER" pg_dump -U yunitz -d yunitz -Fc > /root/yunitz-pg-migration/yunitz-pg17.dump
+   test -s /root/yunitz-pg-migration/yunitz-pg17.dump
+   pg_restore --list /root/yunitz-pg-migration/yunitz-pg17.dump >/dev/null
+   cd /root/yunitz-pg-migration
+   sha256sum yunitz-pg17.dump > yunitz-pg17.dump.sha256
+   sha256sum -c yunitz-pg17.dump.sha256
    ```
 
-5. Comprueba el contenido esperado y la salud de la base; después arranca los demás servicios y retira el mantenimiento. Conserva el clúster 17 hasta completar la validación.
+   Copia el archivo y el hash a un destino externo al VPS y comprueba allí el hash con `sha256sum -c`. No sigas si no puedes verificar el archivo externo.
+4. Detén `gateway`, `web` y `api` desde Coolify para cerrar el tráfico y las escrituras; luego detén `db`. Con la base detenida, conserva una copia recuperable del volumen PostgreSQL 17 (por ejemplo, un snapshot de almacenamiento); no archives el directorio de datos mientras PostgreSQL está activo.
+5. Actualiza la definición del recurso a la configuración de `main` y revisa el Compose desplegable y el almacenamiento persistente resultante. Despliega **solo el servicio `db`** usando Coolify CLI (`coolify deploy uuid <APP_UUID> --service db --latest`) o el control por componente equivalente. [Coolify CLI permite seleccionar un servicio dentro de una aplicación Compose](https://coolify.io/docs/cli/deploy-applications). Confirma que el contenedor está en PostgreSQL 18.6, saludable y usando el volumen nuevo `pgdata18`. No inicies todavía API, web ni gateway. Si tu recurso no ofrece despliegue por componente, detente: no uses el despliegue completo ni improvises con `compose.prod.yml` local; primero identifica la definición Compose generada, proyecto y variables exactos de Coolify.
+6. Define `DB18_CONTAINER` con el nombre del nuevo contenedor y restaura el respaldo en PostgreSQL 18.6 mientras la aplicación sigue detenida:
 
-No elimines el volumen `pgdata` durante la migración. Guarda el respaldo fuera del VPS antes del cambio. Si la validación falla antes de reabrir el sitio, revierte el Compose a PostgreSQL 17.11 y monta `pgdata` en `/var/lib/postgresql/data`. Después de aceptar escrituras en PostgreSQL 18, volver al 17 requiere migrar/restaurar esas escrituras; cambiar solo la etiqueta no es un rollback seguro.
+   ```sh
+   : "${DB18_CONTAINER:?Define el contenedor PostgreSQL 18 identificado en Coolify}"
+   docker exec -i "$DB18_CONTAINER" pg_restore --clean --if-exists --no-owner -U yunitz -d yunitz < /root/yunitz-pg-migration/yunitz-pg17.dump
+   ```
+
+7. Comprueba que existen las tablas y datos esperados (`admins`, `contacts`, `posts`, `settings` y `page_views`) y que PostgreSQL está saludable. Arranca `api` y espera su healthcheck; luego `web` y finalmente `gateway`. Verifica `/health`, `/api/health`, acceso al panel, publicaciones del CMS y el flujo de contacto antes de retirar el mantenimiento.
+8. Conserva el volumen y respaldo de PostgreSQL 17. Cuando la migración ya esté restaurada y validada, define `POSTGRES18_MIGRATION_READY=true` en GitHub (Settings → Secrets and variables → Actions → Variables) y ejecuta manualmente el workflow `Verify, publish and deploy` sobre `main`. Ese despliegue completo actualiza y verifica la revisión nueva; no habilites la variable antes del paso 7.
+
+Si falla la validación antes de reabrir el sitio, detén el componente `db`, revierte la definición a PostgreSQL 17.11 y vuelve a asociar el volumen PG17 original en `/var/lib/postgresql/data`; después arranca los servicios y verifica. No borres `pgdata` ni `pgdata18`. Después de aceptar escrituras en PostgreSQL 18, volver al 17 requiere migrar/restaurar esas escrituras; cambiar solo la etiqueta no es un rollback seguro.
 
 ## Configuración inicial
 
@@ -56,7 +70,7 @@ No elimines el volumen `pgdata` durante la migración. Guarda el respaldo fuera 
 5. Asigna el dominio **solamente a `gateway`, puerto interno 8080**. En la configuración de dominio de Compose en Coolify puede ser necesario introducir `https://yunitztech.com:8080`; el visitante entra por HTTPS estándar en el puerto 443 gestionado por el proxy de Coolify. Activa HTTPS y su redirección en el proxy de Coolify. No asignes dominios a API, web ni base de datos, ni añadas `ports` al Compose.
 6. Configura `TRUSTED_PROXY_CIDR` con la IP exacta del proxy de Coolify o su subred privada dedicada. Nginx acepta `X-Forwarded-For` solo desde ese origen y sustituye `X-Real-IP` antes de llamar a la API. No uses `0.0.0.0/0`. La IP no se guarda en estadísticas: se utiliza en memoria para límites de peticiones. Si este rango es incorrecto, todos los usuarios pueden compartir el límite del proxy. Comprueba el rango del Docker network real en tu VPS (`docker network inspect`).
 7. En GitHub configura secrets `COOLIFY_WEBHOOK` (el webhook de despliegue proporcionado por Coolify) y `COOLIFY_TOKEN` (token con el alcance mínimo de despliegue). El workflow invoca el webhook con método `POST` (requerido por Coolify 4.3.23 para lanzar el despliegue con token). Configura la variable `SITE_URL` del entorno `production` con el dominio HTTPS público para la comprobación final. No pegues tokens en el repositorio ni en URLs públicas.
-8. Ejecuta el workflow o integra cambios en `main`. El trabajo `deploy` depende de que terminen las tres publicaciones. La cola de despliegues no cancela una publicación en curso. Verifica la primera vez en Coolify los volúmenes, health checks, el certificado y las reglas de proxy.
+8. Tras verificar requisitos y migraciones pendientes, integra cambios en `main`. El trabajo `deploy` depende de que terminen las tres publicaciones y de `POSTGRES18_MIGRATION_READY=true`. La cola de despliegues no cancela una publicación en curso. Verifica en Coolify los volúmenes, health checks, certificado y reglas de proxy.
 
 ## Límites de recursos y consumo medido en VPS compartido — W1
 
