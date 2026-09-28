@@ -10,12 +10,40 @@
 | Imágenes en GHCR | `${IMAGE_PREFIX}-gateway:${IMAGE_TAG}`, `${IMAGE_PREFIX}-web:${IMAGE_TAG}`, `${IMAGE_PREFIX}-api:${IMAGE_TAG}` |
 | Visibilidad de imágenes | **Públicas** en GHCR (pull anónimo sin credenciales en Coolify). No privatizar sin coordinación. |
 | Endpoints obligatorios | `/health` (gateway 8080), `/api/health` (API 3000), `/version.json` (revisión de compilación en web) |
-| Volúmenes persistentes | `pgdata` (`/var/lib/postgresql/data`) y `uploads` (`/app/uploads`) |
+| Requisitos de runtime | Docker Engine 29.8.1, Node.js 24.21.0 para CI y PostgreSQL 18.6 |
+| Volúmenes persistentes | `pgdata18` (`/var/lib/postgresql`) y `uploads` (`/app/uploads`) |
 | Variables obligatorias | `POSTGRES_PASSWORD`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `LEGAL_NAME`, `LEGAL_COUNTRY`, `LEGAL_ADDRESS`, `PRIVACY_EMAIL`, `TRUSTED_PROXY_CIDR` |
 | Secretos GitHub | `COOLIFY_WEBHOOK`, `COOLIFY_TOKEN` (permiso mínimo de despliegue) |
 | Variable GitHub `production` | `SITE_URL` |
 
-No renombrar variables ni añadir interpolaciones obligatorias `${…:?}` sin coordinar antes el contrato con infraestructura. Los valores de `NODE_OPTIONS` están integrados como literales dentro de `compose.prod.yml`. Mantener los nombres de servicios y la ausencia de `ports` en producción. No convertir los volúmenes en externos ni cambiar sus nombres.
+No renombrar variables ni añadir interpolaciones obligatorias `${…:?}` sin coordinar antes el contrato con infraestructura. Los valores de `NODE_OPTIONS` están integrados como literales dentro de `compose.prod.yml`. Mantener los nombres de servicios y la ausencia de `ports` en producción. Para el salto mayor de PostgreSQL se conserva `pgdata` y se crea `pgdata18`, tal como se explica abajo.
+
+El workflow instala Docker Engine 29.8.1 para las verificaciones y publicaciones. La versión del motor del host de producción se administra en Coolify/VPS por separado y debe actualizarse a 29.8.1 antes de desplegar esta versión.
+
+## Migrar PostgreSQL 17 a 18.6
+
+PostgreSQL 18 requiere una migración entre versiones mayores; cambiar la etiqueta de imagen no migra el clúster. La imagen oficial cambió `PGDATA` a `/var/lib/postgresql/18/docker` y el volumen debe montarse en `/var/lib/postgresql`. Para mantener intactos los archivos de PostgreSQL 17 y permitir rollback, Compose crea un volumen nuevo llamado `pgdata18`; el volumen existente `pgdata` no se elimina ni se reutiliza. **Antes de desplegar, haz y verifica un respaldo lógico.**
+
+1. Programa una ventana de mantenimiento y detén el tráfico/escrituras de `gateway`, `web` y `api`.
+2. Con PostgreSQL 17 aún activo, crea un respaldo fuera del volumen de base de datos y guárdalo en un destino seguro:
+
+   ```sh
+   mkdir -p backups
+   chmod 700 backups
+   docker compose -f compose.prod.yml exec -T db pg_dump -U yunitz -d yunitz -Fc > backups/yunitz-pg17.dump
+   ```
+
+   Comprueba que el archivo no esté vacío y conserva también un respaldo recuperable del volumen original.
+3. Detén `db`. Actualiza el despliegue con esta configuración y arranca únicamente `db`. Compose creará `pgdata18` vacío y PostgreSQL 18.6 inicializará su nuevo clúster en `/var/lib/postgresql/18/docker`. El volumen anterior `pgdata` conserva intacto el clúster 17.
+4. Restaura el respaldo antes de volver a arrancar `api`, `web` y `gateway`:
+
+   ```sh
+   docker compose -f compose.prod.yml exec -T db pg_restore --clean --if-exists --no-owner -U yunitz -d yunitz < backups/yunitz-pg17.dump
+   ```
+
+5. Comprueba el contenido esperado y la salud de la base; después arranca los demás servicios y retira el mantenimiento. Conserva el clúster 17 hasta completar la validación.
+
+No elimines el volumen `pgdata` durante la migración. Guarda el respaldo fuera del VPS antes del cambio. Si la validación falla antes de reabrir el sitio, revierte el Compose a PostgreSQL 17.11 y monta `pgdata` en `/var/lib/postgresql/data`. Después de aceptar escrituras en PostgreSQL 18, volver al 17 requiere migrar/restaurar esas escrituras; cambiar solo la etiqueta no es un rollback seguro.
 
 ## Configuración inicial
 

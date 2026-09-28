@@ -4,7 +4,9 @@ Sitio bilingüe para una empresa que construye MVP para mipymes. Astro SSR, Nest
 
 ## Empezar en desarrollo
 
-Requisitos: Docker con Compose, Node 22 y npm para las verificaciones locales.
+Requisitos: Docker Engine 29.8.1 con Docker Compose v2, Node.js 24.21.0 y npm. `.nvmrc` fija la versión de Node para el entorno local y CI.
+
+PostgreSQL usa 18.6. Al actualizar desde PostgreSQL 17, sigue primero el procedimiento de respaldo y restauración en [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md); el compose conserva el volumen `pgdata` anterior y crea `pgdata18` para la versión nueva.
 
 ```sh
 cp .env.example .env

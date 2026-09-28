@@ -1,12 +1,13 @@
 name: yunitztech-dev
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:18.6-alpine
     environment:
+      PGDATA: /var/lib/postgresql/18/docker
       POSTGRES_DB: yunitz
       POSTGRES_USER: yunitz
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-    volumes: [pgdata:/var/lib/postgresql/data]
+    volumes: [pgdata18:/var/lib/postgresql]
     healthcheck:
       test: [CMD-SHELL, "pg_isready -U yunitz -d yunitz"]
       interval: 5s
@@ -69,7 +70,7 @@ services:
     depends_on: [web, api]
     networks: [frontend]
 volumes:
-  pgdata:
+  pgdata18:
   uploads:
 networks:
   backend:

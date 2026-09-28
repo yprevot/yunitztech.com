@@ -1,4 +1,4 @@
-FROM node:22-alpine AS manifests
+FROM node:24.21.0-alpine AS manifests
 WORKDIR /app
 COPY package*.json ./
 COPY apps/api/package.json apps/api/package.json
@@ -11,7 +11,7 @@ COPY scripts/trace-web.mjs scripts/trace-web.mjs
 RUN npm run build && node scripts/trace-web.mjs
 FROM manifests AS api-dependencies
 RUN npm ci --omit=dev --workspace=apps/api --include-workspace-root=false
-FROM node:22-alpine AS api
+FROM node:24.21.0-alpine AS api
 ENV NODE_ENV=production UPLOAD_DIR=/app/uploads
 WORKDIR /app
 COPY --from=api-dependencies /app/node_modules ./node_modules
@@ -21,7 +21,7 @@ COPY --from=build /app/apps/api/src/seed.json ./apps/api/src/seed.json
 RUN mkdir /app/uploads && chown node:node /app/uploads
 USER node
 CMD ["node","apps/api/dist/main.js"]
-FROM node:22-alpine AS web
+FROM node:24.21.0-alpine AS web
 ARG RELEASE_SHA=local
 ENV RELEASE_SHA=$RELEASE_SHA
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=4321
