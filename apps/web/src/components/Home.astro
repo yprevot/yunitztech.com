@@ -47,6 +47,7 @@ const steps = en
       ? "Turn your business idea into a useful digital product. Landing pages, online stores, booking systems and apps for small businesses."
       : "Convierte tu idea de negocio en un producto digital útil. Landing pages, tiendas en línea, reservaciones y aplicaciones para mipymes."
   }
+  image={content?.image}
   alternate={en ? "/" : "/en/"}
 >
   <script
@@ -110,12 +111,12 @@ const steps = en
           </div>
           <img
             src={content.image}
-            width="1536"
-            height="1024"
+            width="1200"
+            height="800"
             alt={
               en
-                ? "A miniature shop connected to mobile and web products"
-                : "Una pequeña tienda conectada a productos web y móviles"
+                ? "People collaborating around a laptop to review a project"
+                : "Personas colaborando alrededor de un portátil para revisar un proyecto"
             }
             fetchpriority="high"
           />
@@ -195,17 +196,19 @@ const steps = en
       </section>
       <section class="mvp-section">
         <div class="container mvp-layout">
-          <div class="mvp-diagram" aria-hidden="true">
-            <span class="idea-label">{en ? "Your idea" : "Tu idea"}</span>
-            <div class="orbit">
-              <span>✦</span>
-              <div class="core">
-                MVP
-                <small>
-                  {en ? "A useful first version" : "Una primera versión útil"}
-                </small>
-              </div>
-            </div>
+          <div class="mvp-photo">
+            <img
+              src="/images/mvp-validation.webp"
+              width="1200"
+              height="800"
+              alt={
+                en
+                  ? "Two people discuss an idea while reviewing a laptop"
+                  : "Dos personas conversan sobre una idea mientras revisan un portátil"
+              }
+              loading="lazy"
+              decoding="async"
+            />
             <span class="learn-label">
               {en ? "Build → learn → grow" : "Crear → aprender → crecer"}
             </span>

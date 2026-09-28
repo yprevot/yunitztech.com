@@ -432,11 +432,19 @@ async function bootstrap() {
         p.title,
         p.excerpt,
         p.body,
-        "/images/mvp-studio.webp",
-        p.locale === "es"
-          ? "Ilustración de un negocio y sus productos digitales"
-          : "Illustration of a business and its digital products",
+        p.image,
+        p.image_alt,
       ],
+    );
+  // Upgrade only bundled placeholder images; keep editorial uploads and choices.
+  await db.query(
+    "UPDATE settings SET content = jsonb_set(content, '{image}', to_jsonb($1::text)) WHERE content->>'image' = '/images/mvp-studio.webp'",
+    ["/images/business-collaboration.webp"],
+  );
+  for (const p of seed.posts)
+    await db.query(
+      "UPDATE posts SET image=$1, image_alt=$2 WHERE translation_key=$3 AND locale=$4 AND image='/images/mvp-studio.webp'",
+      [p.image, p.image_alt, p.key, p.locale],
     );
   if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
     if (process.env.ADMIN_PASSWORD.length < 16)
