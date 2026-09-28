@@ -28,7 +28,7 @@ El trabajo de despliegue de GitHub Actions exige `POSTGRES18_MIGRATION_READY=tru
 PostgreSQL 18 requiere una migración entre versiones mayores; cambiar la etiqueta de imagen no migra el clúster. La imagen oficial cambió `PGDATA` a `/var/lib/postgresql/18/docker` y el volumen debe montarse en `/var/lib/postgresql`. Para mantener intactos los archivos de PostgreSQL 17 y permitir rollback, Compose crea un volumen nuevo llamado `pgdata18`; el volumen existente `pgdata` no se elimina ni se reutiliza. **No habilites el webhook normal de despliegue hasta acabar todos los pasos siguientes.** Coolify genera su propia definición Compose y puede normalizar nombres de volúmenes y redes; antes de actuar, contrasta el compose desplegable y los storages que muestra Coolify con los valores reales de producción. [Coolify documenta esa diferencia y recomienda revisar los storages antes de actualizar](https://coolify.io/docs/services/configuration/docker-compose).
 
 1. Integra el cambio mientras `POSTGRES18_MIGRATION_READY` permanezca sin definir. La ejecución de `main` debe publicar las imágenes y dejar el trabajo `deploy` omitido; confirma ese estado en Actions.
-2. Programa una ventana de mantenimiento. Identifica en Coolify el contenedor `db`, el nombre real del volumen PostgreSQL 17 y la definición Compose desplegable. Verifica que el volumen antiguo siga asignado y que `pgdata18` sea un volumen nuevo. No uses `docker compose down -v`, no elimines volúmenes y no supongas que el nombre visible coincide con el nombre de Docker.
+2. Programa una ventana de mantenimiento. Comprueba en el VPS `docker version` y `docker compose version`; el Engine del host debe estar en 29.8.1 antes del despliegue. Identifica en Coolify el contenedor `db`, el nombre real del volumen PostgreSQL 17 y la definición Compose desplegable. Verifica que el volumen antiguo siga asignado y que `pgdata18` sea un volumen nuevo. Si Coolify propone borrar el almacenamiento PostgreSQL 17 al actualizar la definición, cancela. No uses `docker compose down -v`, no elimines volúmenes y no supongas que el nombre visible coincide con el nombre de Docker.
 3. Con PostgreSQL 17 aún activo, guarda un respaldo lógico fuera del volumen de base de datos y fuera del contenedor. En el host, define `DB_CONTAINER` con el contenedor identificado en Coolify y un directorio protegido con espacio suficiente:
 
    ```sh
@@ -38,7 +38,7 @@ PostgreSQL 18 requiere una migración entre versiones mayores; cambiar la etique
    install -d -m 700 /root/yunitz-pg-migration
    docker exec "$DB_CONTAINER" pg_dump -U yunitz -d yunitz -Fc > /root/yunitz-pg-migration/yunitz-pg17.dump
    test -s /root/yunitz-pg-migration/yunitz-pg17.dump
-   pg_restore --list /root/yunitz-pg-migration/yunitz-pg17.dump >/dev/null
+   docker exec -i "$DB_CONTAINER" pg_restore --list < /root/yunitz-pg-migration/yunitz-pg17.dump >/dev/null
    cd /root/yunitz-pg-migration
    sha256sum yunitz-pg17.dump > yunitz-pg17.dump.sha256
    sha256sum -c yunitz-pg17.dump.sha256
@@ -61,7 +61,7 @@ Si falla la validación antes de reabrir el sitio, detén el componente `db`, re
 
 ## Configuración inicial
 
-1. Sube este repositorio a GitHub usando `main`. Configura el entorno GitHub `production`. El workflow prueba la aplicación, publica imágenes `api`, `web` y `gateway` en GHCR, solicita el despliegue y comprueba que `/version.json` presenta el SHA esperado y que `/api/health` responde.
+1. Sube este repositorio a GitHub usando `main`. Configura el entorno GitHub `production`. El workflow prueba la aplicación y publica imágenes `api`, `web` y `gateway` en GHCR; el webhook de Coolify y la comprobación de `/version.json` y `/api/health` solo se ejecutan cuando `POSTGRES18_MIGRATION_READY=true`.
 2. Crea en Coolify una aplicación Docker Compose conectada al repositorio y selecciona `/compose.prod.yml`. Desactiva el autodespliegue por push de Coolify: GitHub Actions debe activar el despliegue después de las pruebas y la publicación de las tres imágenes.
 3. En Coolify define `IMAGE_PREFIX=ghcr.io/yprevot/yunitztech.com` e `IMAGE_TAG=main`. Las imágenes son públicas; no se precisan credenciales de lectura en Coolify. El workflow publica Linux amd64, adecuado para VPS x86_64. Para ARM cambia `platforms` y verifica esa arquitectura antes de desplegar.
 4. Añade secretos independientes `POSTGRES_PASSWORD` (hexadecimal para ser seguro en una URL), `ADMIN_EMAIL` y `ADMIN_PASSWORD` (16+ caracteres), y `SITE_URL=https://yunitztech.com` sin barra final. Configura `LEGAL_NAME`, `LEGAL_ADDRESS`, `LEGAL_COUNTRY` y `PRIVACY_EMAIL` con datos reales revisados:
